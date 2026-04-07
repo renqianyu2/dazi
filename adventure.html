@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 英语闯关冒险</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --adv-bg: #2b1055;
+            --accent-color: #f093fb;
+            --danger-color: #f5576c;
+            --success-color: #38ef7d;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #2b1055 0%, #7597de 100%);
+            color: white;
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(240, 147, 251, 0.3);
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 40px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            font-family: monospace;
+            color: white;
+        }
+
+        /* Sidebar Leaderboard */
+        .sidebar-right {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            width: 250px;
+            height: calc(100vh - 180px);
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(240, 147, 251, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+            overflow: hidden;
+        }
+        
+        .sidebar-title {
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border-bottom: 1px solid rgba(240, 147, 251, 0.3);
+            background: rgba(240, 147, 251, 0.2);
+        }
+
+        .leaderboard-list {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 10px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .lb-item {
+            position: absolute;
+            width: calc(100% - 20px);
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .lb-item .lb-rank { font-weight: bold; width: 30px; }
+        .lb-item .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;}
+        .lb-item .lb-score { color: var(--accent-color); font-family: monospace; font-weight: bold; }
+
+        .lb-item.rank-1 { background: linear-gradient(90deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 100%); border-color: gold; color: gold; z-index: 3; }
+        .lb-item.rank-2 { background: linear-gradient(90deg, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0) 100%); border-color: silver; color: silver; z-index: 2; }
+        .lb-item.rank-3 { background: linear-gradient(90deg, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0) 100%); border-color: #cd7f32; color: #cd7f32; z-index: 1; }
+        .lb-item.is-me { border: 2px solid var(--accent-color); box-shadow: inset 0 0 10px rgba(240, 147, 251, 0.3); }
+
+        .player-info {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(240, 147, 251, 0.3);
+            padding: 10px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            display: none;
+        }
+
+        .player-name {
+            font-size: 18px;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        /* 关卡选择区域 */
+        .level-select-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .level-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: 25px 15px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+        }
+
+        .level-btn:hover:not(.locked) {
+            transform: translateY(-5px);
+            border-color: var(--accent-color);
+            box-shadow: 0 10px 20px rgba(240, 147, 251, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .level-btn.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        .level-btn.completed {
+            border-color: var(--success-color);
+            background: rgba(56, 239, 125, 0.15);
+        }
+
+        .level-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: white;
+        }
+
+        .level-theme {
+            font-size: 16px;
+            color: #ddd;
+        }
+
+        /* 游戏区域 */
+        #gameArea {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .play-card {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(240, 147, 251, 0.4);
+            border-radius: 20px;
+            padding: 50px 80px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+        }
+
+        .word-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.4));
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .english-word {
+            font-size: 60px;
+            font-family: monospace;
+            font-weight: bold;
+            letter-spacing: 5px;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .english-word .typed {
+            color: var(--success-color);
+            text-shadow: 0 0 15px var(--success-color);
+        }
+
+        .english-word .error {
+            color: var(--danger-color);
+            text-shadow: 0 0 15px var(--danger-color);
+        }
+
+        .chinese-meaning {
+            font-size: 24px;
+            color: #ddd;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        /* 进度条 */
+        .progress-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            margin-top: 40px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+            transition: width 0.3s ease-out;
+            box-shadow: 0 0 10px var(--success-color);
+        }
+
+        .screen-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(245, 87, 108, 0.3);
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .screen-flash.active {
+            opacity: 1;
+            animation: flashFade 0.5s ease-out;
+        }
+
+        @keyframes flashFade {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 100;
+        }
+
+        .menu-card {
+            background: rgba(43, 16, 85, 0.9);
+            padding: 60px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 0 40px rgba(240, 147, 251, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="screen-flash" id="screenFlash"></div>
+
+    <div class="game-header">
+        <div class="header-left">
+            <a id="backBtn" href="practice.html" style="color: var(--accent-color); text-decoration: none; font-weight: bold; border: 1px solid var(--accent-color); padding: 5px 15px; border-radius: 20px; cursor: pointer;">[ 返回 ]</a>
+            <button id="muteBtn" class="mute-btn" onclick="Sound.toggleMute(); updateMuteBtn(); if(synth) synth.cancel();">音效: 开启</button>
+        </div>
+        <div class="stat-group">
+            <div class="stat-item">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value" id="scoreValue">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">LEVEL</div>
+                <div class="stat-value" id="levelValue">-</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">WORD</div>
+                <div class="stat-value" id="wordProgress">0/10</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 玩家信息栏 -->
+    <div class="player-info" id="playerInfoUI">
+        <div class="player-name" id="uiPlayerName">访客</div>
+    </div>
+
+    <!-- 排行榜系统 (Leaderboard) -->
+    <div class="sidebar-right" id="leaderboardSidebar">
+        <div class="sidebar-title">实时荣誉榜</div>
+        <ul class="leaderboard-list" id="lbList">
+            <!-- Items injected by JS -->
+        </ul>
+    </div>
+
+    <!-- 选关界面 -->
+    <div class="level-select-container" id="levelSelectArea">
+        <h1 style="color: white; font-size: 48px; margin-bottom: 20px; text-shadow: 0 0 20px var(--accent-color);">🗺️ 英语闯关冒险</h1>
+        <p style="color: #ddd; font-size: 18px; margin-bottom: 40px;">纯正英文打字发音，告别繁琐视线转移</p>
+        <div class="level-grid" id="levelGrid"></div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="gameArea">
+        <div class="play-card" id="playCard">
+            <div class="word-icon" id="currentIcon">🌸</div>
+            <div class="chinese-meaning" id="currentMeaning">春天</div>
+            <div class="english-word" id="currentWordDisplay">
+                <!-- Example: <span class="typed">s</span>pring -->
+                SPRING
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结算蒙版 -->
+    <div id="gameOverOverlay" class="ui-overlay" style="display: none;">
+        <div class="menu-card">
+            <h1 style="color: white; font-size: 48px; margin-bottom: 20px;" id="endTitle">🎉 关卡完成</h1>
+            <div style="font-size: 80px; margin: 30px 0; color: var(--success-color); font-weight: bold; font-family: monospace;" id="finalScore">0</div>
+            
+            <button onclick="backToLevels()" style="background: var(--accent-color); color: white; border: none; padding: 15px 40px; font-size: 20px; border-radius: 30px; cursor: pointer; font-weight: bold; margin-top: 20px;">返回选关</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/sound.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 词库定义 (英汉双语)
+        const levels = [
+            { theme: 'Spring', zhTheme: '春天', words: [
+                { word: 'spring', meaning: '春天', icon: '🌸' }, { word: 'flower', meaning: '花朵', icon: '🌺' }, { word: 'grass', meaning: '小草', icon: '🌿' },
+                { word: 'tree', meaning: '树木', icon: '🌳' }, { word: 'bird', meaning: '小鸟', icon: '🐦' }, { word: 'wind', meaning: '风', icon: '💨' },
+                { word: 'rain', meaning: '雨', icon: '🌧️' }, { word: 'cloud', meaning: '云朵', icon: '☁️' }, { word: 'sun', meaning: '太阳', icon: '☀️' }, { word: 'warm', meaning: '温暖的', icon: '🌡️' }
+            ]},
+            { theme: 'Animals', zhTheme: '动物', words: [
+                { word: 'cat', meaning: '猫', icon: '🐱' }, { word: 'dog', meaning: '狗', icon: '🐶' }, { word: 'bird', meaning: '鸟', icon: '🕊️' },
+                { word: 'fish', meaning: '鱼', icon: '🐟' }, { word: 'horse', meaning: '马', icon: '🐴' }, { word: 'cow', meaning: '牛', icon: '🐮' },
+                { word: 'sheep', meaning: '羊', icon: '🐑' }, { word: 'pig', meaning: '猪', icon: '🐷' }, { word: 'chicken', meaning: '鸡', icon: '🐔' }, { word: 'duck', meaning: '鸭', icon: '🦆' }
+            ]},
+            { theme: 'Fruits', zhTheme: '水果', words: [
+                { word: 'apple', meaning: '苹果', icon: '🍎' }, { word: 'banana', meaning: '香蕉', icon: '🍌' }, { word: 'grape', meaning: '葡萄', icon: '🍇' },
+                { word: 'orange', meaning: '橙子', icon: '🍊' }, { word: 'pear', meaning: '梨', icon: '🍐' }, { word: 'peach', meaning: '桃子', icon: '🍑' },
+                { word: 'melon', meaning: '西瓜', icon: '🍉' }, { word: 'berry', meaning: '草莓', icon: '🍓' }, { word: 'lemon', meaning: '柠檬', icon: '🍋' }, { word: 'cherry', meaning: '樱桃', icon: '🍒' }
+            ]},
+            { theme: 'Colors', zhTheme: '颜色', words: [
+                { word: 'red', meaning: '红色', icon: '🟥' }, { word: 'yellow', meaning: '黄色', icon: '🟨' }, { word: 'blue', meaning: '蓝色', icon: '🟦' },
+                { word: 'green', meaning: '绿色', icon: '🟩' }, { word: 'white', meaning: '白色', icon: '⚪' }, { word: 'black', meaning: '黑色', icon: '⚫' },
+                { word: 'purple', meaning: '紫色', icon: '🟪' }, { word: 'pink', meaning: '粉色', icon: '🌸' }, { word: 'gray', meaning: '灰色', icon: '🐘' }, { word: 'orange', meaning: '橙色', icon: '🟧' }
+            ]},
+            { theme: 'Numbers', zhTheme: '数字', words: [
+                { word: 'one', meaning: '一', icon: '1️⃣' }, { word: 'two', meaning: '二', icon: '2️⃣' }, { word: 'three', meaning: '三', icon: '3️⃣' },
+                { word: 'four', meaning: '四', icon: '4️⃣' }, { word: 'five', meaning: '五', icon: '5️⃣' }, { word: 'six', meaning: '六', icon: '6️⃣' },
+                { word: 'seven', meaning: '七', icon: '7️⃣' }, { word: 'eight', meaning: '八', icon: '8️⃣' }, { word: 'nine', meaning: '九', icon: '9️⃣' }, { word: 'ten', meaning: '十', icon: '🔟' }
+            ]},
+            { theme: 'Family', zhTheme: '家庭', words: [
+                { word: 'father', meaning: '爸爸', icon: '👨' }, { word: 'mother', meaning: '妈妈', icon: '👩' }, { word: 'brother', meaning: '哥哥/弟弟', icon: '👦' },
+                { word: 'sister', meaning: '姐姐/妹妹', icon: '👧' }, { word: 'baby', meaning: '婴儿', icon: '👶' }, { word: 'uncle', meaning: '叔叔', icon: '🧔' },
+                { word: 'aunt', meaning: '阿姨', icon: '👱‍♀️' }, { word: 'grandpa', meaning: '爷爷', icon: '👴' }, { word: 'grandma', meaning: '奶奶', icon: '👵' }, { word: 'family', meaning: '家庭', icon: '👪' }
+            ]},
+            { theme: 'School', zhTheme: '学校', words: [
+                { word: 'school', meaning: '学校', icon: '🏫' }, { word: 'teacher', meaning: '老师', icon: '👨‍🏫' }, { word: 'student', meaning: '学生', icon: '🎒' },
+                { word: 'book', meaning: '书本', icon: '📚' }, { word: 'pen', meaning: '钢笔', icon: '🖊️' }, { word: 'pencil', meaning: '铅笔', icon: '✏️' },
+                { word: 'desk', meaning: '书桌', icon: '🪑' }, { word: 'paper', meaning: '纸张', icon: '📄' }, { word: 'class', meaning: '班级', icon: '🧑‍🤝‍🧑' }, { word: 'read', meaning: '阅读', icon: '📖' }
+            ]},
+            { theme: 'Body', zhTheme: '身体', words: [
+                { word: 'head', meaning: '头', icon: '👤' }, { word: 'hand', meaning: '手', icon: '🖐️' }, { word: 'foot', meaning: '脚', icon: '🦶' },
+                { word: 'eye', meaning: '眼睛', icon: '👁️' }, { word: 'ear', meaning: '耳朵', icon: '👂' }, { word: 'mouth', meaning: '嘴巴', icon: '👄' },
+                { word: 'nose', meaning: '鼻子', icon: '👃' }, { word: 'heart', meaning: '心脏', icon: '❤️' }, { word: 'face', meaning: '脸颊', icon: '😊' }, { word: 'leg', meaning: '腿', icon: '🦵' }
+            ]},
+            { theme: 'Weather', zhTheme: '天气', words: [
+                { word: 'sunny', meaning: '晴天', icon: '☀️' }, { word: 'rainy', meaning: '雨天', icon: '🌧️' }, { word: 'snowy', meaning: '雪天', icon: '❄️' },
+                { word: 'windy', meaning: '刮风', icon: '🌬️' }, { word: 'cloudy', meaning: '多云', icon: '⛅' }, { word: 'storm', meaning: '风暴', icon: '⛈️' },
+                { word: 'lightning', meaning: '闪电', icon: '⚡' }, { word: 'fog', meaning: '雾', icon: '🌁' }, { word: 'ice', meaning: '冰', icon: '🧊' }, { word: 'hot', meaning: '炎热', icon: '🔥' }
+            ]},
+            { theme: 'Directions', zhTheme: '方向', words: [
+                { word: 'east', meaning: '东', icon: '➡️' }, { word: 'south', meaning: '南', icon: '⬇️' }, { word: 'west', meaning: '西', icon: '⬅️' },
+                { word: 'north', meaning: '北', icon: '⬆️' }, { word: 'up', meaning: '上', icon: '🔼' }, { word: 'down', meaning: '下', icon: '🔽' },
+                { word: 'left', meaning: '左', icon: '◀️' }, { word: 'right', meaning: '右', icon: '▶️' }, { word: 'front', meaning: '前', icon: '⏫' }, { word: 'back', meaning: '后', icon: '⏬' }
+            ]}
+        ];
+
+        // 网络同步引擎 (排行榜)
+        const netEngine = {
+            socket: null,
+            myId: null,
+            myName: '访客',
+            init(inGame = false) {
+                try {
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    if (studentInfo.id && studentInfo.name) {
+                        this.myId = studentInfo.id;
+                        this.myName = studentInfo.name;
+                    } else {
+                        this.myId = 'guest_' + Math.floor(Math.random()*10000);
+                    }
+                    
+                    document.getElementById('uiPlayerName').innerText = this.myName;
+                    document.getElementById('playerInfoUI').style.display = inGame ? 'block' : 'none';
+                    document.getElementById('leaderboardSidebar').style.display = inGame ? 'flex' : 'none';
+
+                    if (inGame) {
+                        this.renderLeaderboard([{ username: this.myName, score: 0 }]);
+                    }
+
+                    if (typeof io !== 'undefined') {
+                        this.socket = io();
+                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+
+                        this.socket.on('leaderboard_update', (list) => {
+                            if (list && list.length > 0) this.renderLeaderboard(list);
+                        });
+                    }
+                } catch(e) {
+                    console.warn("Socket.io initialization skipped or failed", e);
+                }
+            },
+            updateScore(score) {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('update_score', { score, wpm: 0 }); 
+                } else {
+                    this.renderLeaderboard([{ username: this.myName, score }]);
+                }
+            },
+            resetScore() {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('reset_score');
+                }
+            },
+            renderLeaderboard(list) {
+                const ul = document.getElementById('lbList');
+                const ITEM_HEIGHT = 45; 
+                
+                const existingItems = new Map();
+                Array.from(ul.children).forEach(li => {
+                    existingItems.set(li.dataset.name, li);
+                });
+
+                list.forEach((p, idx) => {
+                    const currentRank = idx + 1;
+                    const isMe = p.username === this.myName;
+                    
+                    let li = existingItems.get(p.username);
+                    if (!li) {
+                        li = document.createElement('li');
+                        li.className = 'lb-item';
+                        li.dataset.name = p.username;
+                        li.innerHTML = `
+                            <span class="lb-rank"></span>
+                            <span class="lb-name"></span>
+                            <span class="lb-score"></span>
+                        `;
+                        ul.appendChild(li);
+                    } else {
+                        existingItems.delete(p.username);
+                    }
+                    
+                    li.querySelector('.lb-rank').innerText = currentRank;
+                    li.querySelector('.lb-score').innerText = p.score;
+                    li.querySelector('.lb-name').innerText = p.username;
+                    
+                    li.style.transform = `translateY(${idx * ITEM_HEIGHT}px)`;
+                    li.classList.remove('rank-1', 'rank-2', 'rank-3', 'is-me');
+                    if (currentRank === 1) li.classList.add('rank-1');
+                    if (currentRank === 2) li.classList.add('rank-2');
+                    if (currentRank === 3) li.classList.add('rank-3');
+                    if (isMe) li.classList.add('is-me');
+                });
+
+                existingItems.forEach(li => li.remove());
+            }
+        };
+
+        let currentLevel = 0;
+        let currentWordIndex = 0;
+        let score = 0;
+        let completedLevels = JSON.parse(localStorage.getItem('completedAdvLevels') || '[]');
+        let gameState = 'MENU';
+        let typedCount = 0;
+        
+        const flashEl = document.getElementById('screenFlash');
+        const synth = window.speechSynthesis;
+        let selectedVoice = null;
+
+        // 初始化静音按钮状态和语音
+        function updateMuteBtn() {
+            const btn = document.getElementById('muteBtn');
+            if (btn) {
+                btn.innerHTML = `音效: ${Sound.muted ? '关闭' : '开启'}`;
+                btn.className = `mute-btn ${Sound.muted ? 'muted' : ''}`;
+            }
+        }
+        updateMuteBtn();
+
+        // 初始化语音，选择英式女声
+        function initVoice() {
+            if (!synth) return;
+            const voices = synth.getVoices();
+            // 优先选择英式英语女声
+            selectedVoice = voices.find(v => v.lang === 'en-GB' && v.name.includes('Female')) 
+                || voices.find(v => v.lang === 'en-GB')
+                || voices.find(v => v.lang.startsWith('en') && v.name.includes('Female'))
+                || voices.find(v => v.lang.startsWith('en'));
+        }
+        
+        // 浏览器需要等待语音列表加载
+        if (synth) {
+            if (synth.getVoices().length > 0) {
+                initVoice();
+            } else {
+                synth.onvoiceschanged = initVoice;
+            }
+        }
+
+        // 钢琴音效 - 输入正确时的声音
+        function playPianoSound() {
+            if (Sound.muted) return;
+            const ctx = Sound._getContext();
+            const t = ctx.currentTime;
+            
+            // 随机选择一个钢琴音区的音符 (C4-C6)
+            const notes = [261.63, 293.66, 311.13, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25];
+            const freq = notes[Math.floor(Math.random() * notes.length)];
+            
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'triangle'; // 三角波更像钢琴音色
+            osc.frequency.value = freq;
+            
+            // 钢琴音色包络：快速起音，缓慢衰减
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.2, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.4);
+        }
+
+        function playSfx(type) {
+            if (Sound.muted) return;
+            if (type === 'hit') playPianoSound();
+            else if (type === 'miss') Sound.playError();
+            else if (type === 'complete') Sound.playComplete();
+        }
+
+        function speakWord(text) {
+            if (synth && !Sound.muted) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                // 使用英式英语
+                utterance.lang = 'en-GB';
+                // 使用选定的语音
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                utterance.rate = 0.85; // 稍微放慢，更清晰
+                utterance.pitch = 1.0;
+                synth.speak(utterance);
+            }
+        }
+
+        function initLevels() {
+            const grid = document.getElementById('levelGrid');
+            grid.innerHTML = levels.map((level, i) => {
+                const locked = i > 0 && !completedLevels.includes(i - 1);
+                const completed = completedLevels.includes(i);
+                return `<div class="level-btn ${locked ? 'locked' : ''} ${completed ? 'completed' : ''}"
+                        onclick="${locked ? '' : `startLevel(${i})`}">
+                    <div class="level-number">Level ${i + 1}</div>
+                    <div class="level-theme">${level.theme} - ${level.zhTheme}</div>
+                    ${completed ? '<div style="margin-top:10px;font-size:20px;">✅</div>' : ''}
+                </div>`;
+            }).join('');
+            
+            // Initialization point for socket - 选关界面不显示排行榜
+            netEngine.init(false);
+        }
+
+        function startLevel(levelIdx) {
+            currentLevel = levelIdx;
+            currentWordIndex = 0;
+            score = 0;
+            typedCount = 0;
+            gameState = 'PLAYING';
+            
+            document.getElementById('levelSelectArea').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'flex';
+            document.getElementById('backBtn').setAttribute('onclick', 'backToLevels(); return false;');
+            document.getElementById('backBtn').removeAttribute('href');
+            
+            document.getElementById('levelValue').textContent = levelIdx + 1;
+            document.getElementById('scoreValue').textContent = '0';
+            
+            // 进入游戏时初始化排行榜（显示）
+            netEngine.init(true);
+            
+            showNextWord();
+        }
+
+        function showNextWord() {
+            if (currentWordIndex >= levels[currentLevel].words.length) {
+                completeLevel();
+                return;
+            }
+
+            const activeWord = levels[currentLevel].words[currentWordIndex];
+            typedCount = 0;
+            
+            document.getElementById('currentIcon').textContent = activeWord.icon;
+            document.getElementById('currentMeaning').textContent = activeWord.meaning;
+            
+            updateWordDisplay();
+            
+            document.getElementById('wordProgress').textContent = `${currentWordIndex}/${levels[currentLevel].words.length}`;
+            document.getElementById('progressBar').style.width = (currentWordIndex / levels[currentLevel].words.length * 100) + '%';
+        }
+
+        function updateWordDisplay(isError = false) {
+            const activeWord = levels[currentLevel].words[currentWordIndex].word;
+            const typedText = activeWord.substring(0, typedCount);
+            const remainingBase = activeWord.substring(typedCount);
+            
+            let html = `<span class="typed">${typedText}</span>`;
+            if (isError && remainingBase.length > 0) {
+                html += `<span class="error">${remainingBase[0]}</span>${remainingBase.substring(1)}`;
+            } else {
+                html += remainingBase;
+            }
+            
+            document.getElementById('currentWordDisplay').innerHTML = html;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            
+            // Allow alpha only
+            if (!/^[a-zA-Z]$/.test(e.key) || e.ctrlKey || e.altKey || e.metaKey) return;
+            
+            const char = e.key.toLowerCase();
+            const activeWord = levels[currentLevel].words[currentWordIndex].word.toLowerCase();
+            
+            if (char === activeWord[typedCount]) {
+                // Correct char
+                typedCount++;
+                playSfx('hit');
+                score += 5;
+                document.getElementById('scoreValue').textContent = score;
+                netEngine.updateScore(score);
+                
+                updateWordDisplay();
+                
+                if (typedCount === activeWord.length) {
+                    // Word completed
+                    score += 20; // Bonus
+                    document.getElementById('scoreValue').textContent = score;
+                    netEngine.updateScore(score);
+                    
+                    speakWord(activeWord);
+                    
+                    // Little pop effect
+                    const card = document.getElementById('playCard');
+                    card.style.transform = 'scale(1.05)';
+                    setTimeout(() => card.style.transform = 'scale(1)', 150);
+                    
+                    currentWordIndex++;
+                    setTimeout(() => {
+                        showNextWord();
+                    }, 400); // short delay so user sees completion before it snaps
+                }
+            } else {
+                // Wrong char
+                playSfx('miss');
+                
+                // Show red char
+                updateWordDisplay(true);
+                
+                flashEl.classList.remove('active');
+                void flashEl.offsetWidth;
+                flashEl.classList.add('active');
+                
+                // Screen shake
+                const card = document.getElementById('playCard');
+                card.style.transform = 'translateX(15px)';
+                setTimeout(() => card.style.transform = 'translateX(-15px)', 50);
+                setTimeout(() => card.style.transform = 'translateX(10px)', 100);
+                setTimeout(() => card.style.transform = 'translateX(0)', 150);
+                
+                // Revert error display quickly
+                setTimeout(() => {
+                    if (gameState === 'PLAYING') updateWordDisplay();
+                }, 300);
+            }
+        });
+
+        function completeLevel() {
+            gameState = 'COMPLETED';
+            if (!completedLevels.includes(currentLevel)) {
+                completedLevels.push(currentLevel);
+                localStorage.setItem('completedAdvLevels', JSON.stringify(completedLevels));
+            }
+
+            playSfx('complete');
+
+            // Save record
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+            if (studentInfo.id && typeof submitPractice !== 'undefined') {
+                submitPractice({
+                    student_id: studentInfo.id,
+                    mode: 'adventure-english',
+                    score: score,
+                    duration: 0,
+                    extra_data: { level: currentLevel + 1, theme: levels[currentLevel].theme }
+                }).catch(err => console.error('Saving failed:', err));
+            }
+
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOverOverlay').style.display = 'flex';
+        }
+
+        function backToLevels() {
+            gameState = 'MENU';
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            document.getElementById('levelSelectArea').style.display = 'flex';
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('backBtn').setAttribute('href', 'practice.html');
+            document.getElementById('backBtn').removeAttribute('onclick');
+            initLevels();
+        }
+
+        // Init the menu
+        initLevels();
+    </script>
+</body>
+</html>

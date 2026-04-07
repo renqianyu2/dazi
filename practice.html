@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 练习模式</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .practice-container {
+            max-width: 1000px;
+        }
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 30px;
+        }
+        .mode-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #DC143C, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s;
+        }
+        .mode-card:hover::before {
+            transform: scaleX(1);
+        }
+        .mode-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3);
+        }
+        .mode-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .mode-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .mode-desc {
+            color: #888;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .difficulty-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .easy { background: #38ef7d; color: white; }
+        .medium { background: #ffd93d; color: #333; }
+        .hard { background: #f5576c; color: white; }
+    </style>
+</head>
+<body>
+    <div class="global-header">
+        <div class="logo-section">
+            <span class="logo-icon">📚</span>
+            <span class="logo-text">苹湖拼音打字系统</span>
+        </div>
+        <div class="user-section" id="headerUserInfo"></div>
+    </div>
+
+    <div class="container practice-container">
+        <div style="text-align: center; margin-bottom: 40px;">
+            <h1>🎮 练习模式</h1>
+            <p style="color: #888; font-size: 18px;">选择你喜欢的游戏模式，轻松练习打字</p>
+        </div>
+
+        <div class="mode-grid">
+            <div class="mode-card" onclick="location.href='interstellar-typist.html'">
+                <div class="mode-icon">🚀</div>
+                <div class="mode-title">键盘基础练习</div>
+                <div class="mode-desc">
+                    敌机正从星空深处袭来<br>
+                    锁定并准确击落它们<br>
+                    挑战极限手速与准确率！
+                </div>
+                <span class="difficulty-badge hard">挑战</span>
+            </div>
+
+            <div class="mode-card" onclick="location.href='fruit-catch.html'">
+                <div class="mode-icon">🍎</div>
+                <div class="mode-title">拼音入门</div>
+                <div class="mode-desc">
+                    水果从天而降<br>
+                    打出拼音接住水果<br>
+                    连击得高分，别让水果掉落！
+                </div>
+                <span class="difficulty-badge easy">简单</span>
+            </div>
+
+            <div class="mode-card" onclick="location.href='adventure.html'">
+                <div class="mode-icon">🗺️</div>
+                <div class="mode-title">英语闯关冒险</div>
+                <div class="mode-desc">
+                    10关递增难度<br>
+                    每关不同主题挑战<br>
+                    通关解锁成就徽章！
+                </div>
+                <span class="difficulty-badge medium">中等</span>
+            </div>
+
+            <div class="mode-card" onclick="location.href='classics.html'">
+                <div class="mode-icon">📜</div>
+                <div class="mode-title">国学打字</div>
+                <div class="mode-desc">
+                    百家姓、千字文<br>
+                    传承经典，练习打字<br>
+                    可显示拼音提示！
+                </div>
+                <span class="difficulty-badge medium">中等</span>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px;">
+            <button class="btn btn-warning" onclick="location.href='home.html'">返回大厅</button>
+        </div>
+    </div>
+
+    <script>
+        // 认证检查
+        const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+        if (!studentInfo.id) {
+            alert('请先登录');
+            location.href = 'login.html';
+        }
+        document.getElementById('headerUserInfo').innerHTML = `<span class="header-user-info">${studentInfo.name} - ${studentInfo.class}</span>`;
+
+        function startMode(mode) {
+            const modes = {
+                'whack': '打地鼠模式',
+                'fruit': '拼音入门',
+                'adventure': '英语闯关冒险',
+                'pk': '双人PK'
+            };
+            alert(`${modes[mode]}开发中...\n敬请期待！🎮`);
+        }
+    </script>
+</body>
+</html>

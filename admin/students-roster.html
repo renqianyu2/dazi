@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生名册</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body { background: #f0f4f8; display: block; padding: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .admin-nav { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-nav a { color: white; text-decoration: none; margin: 0 15px; transition: opacity 0.3s; }
+        .admin-nav a:hover { opacity: 0.8; }
+        .admin-container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        .toolbar { background: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .toolbar input, .toolbar select { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+        .toolbar input { min-width: 150px; }
+        .toolbar .filter-group { display: flex; align-items: center; gap: 8px; }
+        .toolbar label { color: #6b7280; font-size: 14px; white-space: nowrap; }
+        table { width: 100%; background: white; border-radius: 12px; overflow: hidden; border-collapse: collapse; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        .btn-small { padding: 5px 12px; font-size: 13px; border-radius: 6px; border: none; cursor: pointer; margin: 0 3px; }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-logout { background: #f59e0b; color: white; }
+        .btn-reset { background: #8b5cf6; color: white; }
+        .status-online { color: #10b981; font-weight: bold; }
+        .status-offline { color: #9ca3af; }
+        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; align-items: center; }
+        .pagination button { padding: 8px 12px; border: 1px solid #d1d5db; background: white; border-radius: 6px; cursor: pointer; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination button.active { background: #667eea; color: white; border-color: #667eea; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; max-width: 500px; margin: 100px auto; padding: 30px; border-radius: 12px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; }
+        .btn-back { padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .student-checkbox { width: 18px; height: 18px; cursor: pointer; }
+        th input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        tr:hover { background: #f9fafb; }
+        #selectedCount { min-width: 80px; }
+    </style>
+</head>
+<body>
+    <div class="admin-nav">
+        <div><strong>谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="test-records.html">测试记录</a>
+            <a href="practice-records.html">练习记录</a>
+            <a href="classes.html">班级管理</a>
+            <a href="ranking.html">优秀学生</a>
+            <a href="texts.html">文本库</a>
+            <a href="test-code.html">测试验证码</a>
+            <a href="security.html" style="color: #fbbf24; font-weight: bold;">🔒 安全管理</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+            <button class="btn-back" onclick="window.location.href='students.html'">返回</button>
+            <h2 style="margin:0;">学生名册</h2>
+        </div>
+
+        <div class="toolbar">
+            <div class="filter-group">
+                <input type="text" id="searchInput" placeholder="搜索姓名/学号..." onkeyup="filterStudents()">
+            </div>
+            <div class="filter-group">
+                <select id="schoolFilter" onchange="filterStudents()">
+                    <option value="">全部学校</option>
+                    <option value="中华路小学">中华路小学</option>
+                    <option value="谷山学校">谷山学校</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="gradeFilter" onchange="filterStudents()">
+                    <option value="">全部年级</option>
+                    <option value="1">一年级</option>
+                    <option value="2">二年级</option>
+                    <option value="3">三年级</option>
+                    <option value="4">四年级</option>
+                    <option value="5">五年级</option>
+                    <option value="6">六年级</option>
+                    <option value="7">七年级</option>
+                    <option value="8">八年级</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="classFilter" onchange="filterStudents()">
+                    <option value="">全部班级</option>
+                </select>
+            </div>
+            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                <span id="selectedCount" style="color: #6b7280; font-size: 14px;"></span>
+                <button class="btn btn-success" onclick="openAddModal()">➕ 添加用户</button>
+                <button class="btn btn-danger" onclick="batchDelete()">批量删除</button>
+                <button class="btn btn-primary" onclick="exportToExcel()">导出Excel</button>
+                <button class="btn btn-success" onclick="downloadTemplate()">下载模板</button>
+                <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
+                <button class="btn btn-info" onclick="document.getElementById('excelFileInput').click()">导入Excel</button>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                    <th>姓名</th>
+                    <th>学校</th>
+                    <th>年级</th>
+                    <th>班级</th>
+                    <th>学号</th>
+                    <th>登录状态</th>
+                    <th>测试次数</th>
+                    <th>平均速度</th>
+                    <th>最高速度</th>
+                    <th>平均准确率</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="studentsBody"></tbody>
+        </table>
+
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h3>添加新用户</h3>
+            <div class="form-group">
+                <label>姓名 <span style="color: red;">*</span></label>
+                <input type="text" id="addName" placeholder="请输入学生姓名">
+            </div>
+            <div class="form-group">
+                <label>学校 <span style="color: red;">*</span></label>
+                <select id="addSchool">
+                    <option value="">请选择学校</option>
+                    <option value="中华路小学">中华路小学</option>
+                    <option value="谷山学校">谷山学校</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>年级 <span style="color: red;">*</span></label>
+                <select id="addGrade">
+                    <option value="">请选择年级</option>
+                    <option value="1">一年级</option>
+                    <option value="2">二年级</option>
+                    <option value="3">三年级</option>
+                    <option value="4">四年级</option>
+                    <option value="5">五年级</option>
+                    <option value="6">六年级</option>
+                    <option value="7">七年级</option>
+                    <option value="8">八年级</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>班级 <span style="color: red;">*</span></label>
+                <select id="addClass">
+                    <option value="">请选择班级</option>
+                    <option value="1">1班</option>
+                    <option value="2">2班</option>
+                    <option value="3">3班</option>
+                    <option value="4">4班</option>
+                    <option value="5">5班</option>
+                    <option value="6">6班</option>
+                    <option value="7">7班</option>
+                    <option value="8">8班</option>
+                    <option value="9">9班</option>
+                    <option value="10">10班</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>学号</label>
+                <input type="text" id="addStudentNo" placeholder="留空则自动生成">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveAdd()">确认添加</button>
+                <button class="btn btn-secondary" onclick="closeAddModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>编辑学生信息</h3>
+            <div class="form-group">
+                <label>姓名</label>
+                <input type="text" id="editName">
+            </div>
+            <div class="form-group">
+                <label>学校</label>
+                <select id="editSchool">
+                    <option value="中华路小学">中华路小学</option>
+                    <option value="谷山学校">谷山学校</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>年级</label>
+                <select id="editGrade">
+                    <option value="1">一年级</option>
+                    <option value="2">二年级</option>
+                    <option value="3">三年级</option>
+                    <option value="4">四年级</option>
+                    <option value="5">五年级</option>
+                    <option value="6">六年级</option>
+                    <option value="7">七年级</option>
+                    <option value="8">八年级</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>班级</label>
+                <select id="editClass">
+                    <option value="1">1班</option>
+                    <option value="2">2班</option>
+                    <option value="3">3班</option>
+                    <option value="4">4班</option>
+                    <option value="5">5班</option>
+                    <option value="6">6班</option>
+                    <option value="7">7班</option>
+                    <option value="8">8班</option>
+                    <option value="9">9班</option>
+                    <option value="10">10班</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveEdit()">保存</button>
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        let allStudents = [];
+        let filteredStudents = [];
+        let currentPage = 1;
+        const pageSize = 20;
+        let editingId = null;
+
+        // 打开添加用户弹窗
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'block';
+            // 清空表单
+            document.getElementById('addName').value = '';
+            document.getElementById('addSchool').value = '';
+            document.getElementById('addGrade').value = '';
+            document.getElementById('addClass').value = '';
+            document.getElementById('addStudentNo').value = '';
+        }
+
+        // 关闭添加用户弹窗
+        function closeAddModal() {
+            document.getElementById('addModal').style.display = 'none';
+        }
+
+        // 保存新用户
+        async function saveAdd() {
+            const name = document.getElementById('addName').value.trim();
+            const school = document.getElementById('addSchool').value;
+            const grade = document.getElementById('addGrade').value;
+            const classNum = document.getElementById('addClass').value;
+
+            // 验证必填字段
+            if (!name) {
+                alert('请输入学生姓名');
+                return;
+            }
+            if (!school) {
+                alert('请选择学校');
+                return;
+            }
+            if (!grade) {
+                alert('请选择年级');
+                return;
+            }
+            if (!classNum) {
+                alert('请选择班级');
+                return;
+            }
+
+            try {
+                // 直接调用fetch以确保参数正确传递
+                const response = await fetch('/api/admin/student', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: name, 
+                        school: school, 
+                        grade: parseInt(grade), 
+                        class_number: parseInt(classNum) 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '添加失败');
+                }
+                
+                alert('添加成功！');
+                closeAddModal();
+                loadStudents();
+            } catch (error) {
+                alert('添加失败: ' + error.message);
+            }
+        }
+
+        document.getElementById('gradeFilter').addEventListener('change', function() {
+            const grade = this.value;
+            const classFilter = document.getElementById('classFilter');
+            classFilter.innerHTML = '<option value="">全部班级</option>';
+            if (grade) {
+                for (let i = 1; i <= 10; i++) {
+                    classFilter.innerHTML += `<option value="${i}">${i}班</option>`;
+                }
+            }
+        });
+
+        async function loadStudents() {
+            const { students } = await getAllStudents();
+            allStudents = students;
+            filterStudents();
+        }
+
+        function filterStudents() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const school = document.getElementById('schoolFilter').value;
+            const grade = document.getElementById('gradeFilter').value;
+            const classNum = document.getElementById('classFilter').value;
+
+            filteredStudents = allStudents.filter(s => {
+                const matchSearch = !search || s.name.toLowerCase().includes(search) || s.student_no.toLowerCase().includes(search);
+                const matchSchool = !school || s.school === school;
+                const matchGrade = !grade || s.grade == grade;
+                const matchClass = !classNum || s.class_number == classNum;
+                return matchSearch && matchSchool && matchGrade && matchClass;
+            });
+
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        // 获取当前页选中的学生ID
+        function getSelectedIds() {
+            const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+            return Array.from(checkboxes).map(cb => parseInt(cb.value));
+        }
+
+        // 全选/取消全选
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+            updateSelectedCount();
+        }
+
+        // 更新选中数量显示
+        function updateSelectedCount() {
+            const count = getSelectedIds().length;
+            const countDisplay = document.getElementById('selectedCount');
+            if (countDisplay) {
+                countDisplay.textContent = `已选择 ${count} 项`;
+            }
+        }
+
+        // 单个复选框变化时更新全选状态
+        function handleCheckboxChange() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+            
+            selectAll.checked = allChecked;
+            selectAll.indeterminate = someChecked && !allChecked;
+            updateSelectedCount();
+        }
+
+        // 批量删除
+        async function batchDelete() {
+            const selectedIds = getSelectedIds();
+            if (selectedIds.length === 0) {
+                alert('请先选择要删除的学生');
+                return;
+            }
+            
+            if (!confirm(`确定删除选中的 ${selectedIds.length} 名学生吗？此操作不可恢复！`)) {
+                return;
+            }
+
+            try {
+                for (const id of selectedIds) {
+                    await fetch(`/api/admin/student/${id}`, { method: 'DELETE' });
+                }
+                alert('批量删除成功！');
+                // 重置全选框
+                document.getElementById('selectAll').checked = false;
+                loadStudents();
+            } catch (error) {
+                alert('删除失败: ' + error.message);
+            }
+        }
+
+        function renderTable() {
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = filteredStudents.slice(start, end);
+
+            const tbody = document.getElementById('studentsBody');
+            tbody.innerHTML = pageData.map(s => `
+                <tr>
+                    <td><input type="checkbox" class="student-checkbox" value="${s.id}" onchange="handleCheckboxChange()"></td>
+                    <td>${s.name}</td>
+                    <td>${s.school || ''}</td>
+                    <td>${s.grade}</td>
+                    <td>${s.class_number}</td>
+                    <td>${s.student_no}</td>
+                    <td class="${s.login_time ? 'status-online' : 'status-offline'}">${s.login_time ? '在线' : '离线'}</td>
+                    <td>${s.test_count || 0}</td>
+                    <td>${Math.round(s.avg_speed || 0)} 字/分</td>
+                    <td>${Math.round(s.max_speed || 0)} 字/分</td>
+                    <td>${Math.round(s.avg_accuracy || 0)}%</td>
+                    <td>
+                        <button class="btn-small btn-edit" onclick="editStudent(${s.id})">编辑</button>
+                        <button class="btn-small btn-logout" onclick="forceLogout(${s.id})">强制登出</button>
+                        <button class="btn-small btn-reset" onclick="resetPassword(${s.id})">重置密码</button>
+                        <button class="btn-small btn-delete" onclick="deleteStudent(${s.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredStudents.length / pageSize);
+            const pagination = document.getElementById('pagination');
+
+            let html = `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<span>...</span>';
+                }
+            }
+
+            html += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+            html += `<span style="margin-left: 10px;">共 ${filteredStudents.length} 条</span>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredStudents.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderTable();
+            renderPagination();
+        }
+
+        function editStudent(id) {
+            const student = allStudents.find(s => s.id === id);
+            if (!student) return;
+
+            editingId = id;
+            document.getElementById('editName').value = student.name;
+            document.getElementById('editSchool').value = student.school || '';
+            document.getElementById('editGrade').value = student.grade;
+            document.getElementById('editClass').value = student.class_number;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        async function saveEdit() {
+            const name = document.getElementById('editName').value;
+            const school = document.getElementById('editSchool').value;
+            const grade = parseInt(document.getElementById('editGrade').value);
+            const class_number = parseInt(document.getElementById('editClass').value);
+
+            await fetch(`/api/admin/student/${editingId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, school, grade, class_number })
+            });
+
+            closeModal();
+            loadStudents();
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingId = null;
+        }
+
+        // 点击弹窗外部区域关闭弹窗
+        window.onclick = function(event) {
+            const addModal = document.getElementById('addModal');
+            const editModal = document.getElementById('editModal');
+            if (event.target === addModal) {
+                closeAddModal();
+            }
+            if (event.target === editModal) {
+                closeModal();
+            }
+        }
+
+        async function deleteStudent(id) {
+            if (!confirm('确定删除该学生的所有数据吗？')) return;
+
+            await fetch(`/api/admin/student/${id}`, { method: 'DELETE' });
+            loadStudents();
+        }
+
+        async function forceLogout(id) {
+            if (!confirm('确定要强制登出该学生吗？')) return;
+
+            try {
+                const response = await fetch(`/api/admin/student/${id}/logout`, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('强制登出成功！');
+                    loadStudents();
+                } else {
+                    alert('操作失败：' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('操作失败：' + error.message);
+            }
+        }
+
+        async function resetPassword(id) {
+            if (!confirm('确定要重置该学生的密码吗？\n重置后密码将恢复为默认密码：123456')) return;
+
+            try {
+                const response = await fetch(`/api/admin/reset-password/${id}`, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('密码重置成功！\n新密码为：123456');
+                } else {
+                    alert('重置失败：' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('重置失败：' + error.message);
+            }
+        }
+
+        function exportToExcel() {
+            const data = filteredStudents.map(s => ({
+                '姓名': s.name,
+                '学校': s.school,
+                '年级': s.grade,
+                '班级': s.class_number,
+                '学号': s.student_no,
+                '测试次数': s.test_count || 0,
+                '平均速度': Math.round(s.avg_speed || 0),
+                '最高速度': Math.round(s.max_speed || 0),
+                '平均准确率': Math.round(s.avg_accuracy || 0)
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '学生列表');
+            XLSX.writeFile(wb, '学生数据.xlsx');
+        }
+
+        function downloadTemplate() {
+            const ws = XLSX.utils.aoa_to_sheet([
+                ["姓名", "学校", "年级", "班级"]
+            ]);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "学生导入模板");
+            XLSX.writeFile(wb, "学生导入模板.xlsx");
+        }
+
+        document.getElementById('excelFileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+
+                const rows = jsonData.slice(1);
+
+                for (const row of rows) {
+                    const [name, school, grade, classNumber] = row;
+                    if (!name || !school || !grade || !classNumber) continue;
+                    try {
+                        await adminCreateStudent(name, school, parseInt(grade), parseInt(classNumber));
+                    } catch (err) {
+                        console.error("Error creating student:", err);
+                        alert(`导入学生 ${name} 时出错: ${err.message}`);
+                    }
+                }
+
+                alert("导入完成！");
+                e.target.value = '';
+                loadStudents();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+
+        loadStudents();
+    </script>
+</body>
+</html>

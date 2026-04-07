@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 拼音入门 (纯享打字版)</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --orchard-bg: #1a2a1a;
+            --accent-color: #f39c12;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3b2b 0%, #0d1a12 100%);
+            color: white;
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+
+        .background-leaves {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(46, 204, 113, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 80% 60%, rgba(241, 196, 15, 0.05) 0%, transparent 20%);
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(15px);
+            border-bottom: 2px solid rgba(46, 204, 113, 0.3);
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .mute-btn {
+            background: none;
+            border: 1px solid rgba(46, 204, 113, 0.5);
+            color: var(--success-color);
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 40px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--success-color);
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            font-family: monospace;
+            color: white;
+        }
+
+        #gameArea {
+            flex: 1 1 auto;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .fruit {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+
+        .fruit-icon {
+            font-size: 60px;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2;
+        }
+
+        .fruit-word {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-top: 5px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.6);
+            z-index: 3;
+            text-align: center;
+        }
+
+        .fruit-word .pinyin {
+            color: #ddd;
+            font-size: 22px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .fruit-word .pinyin span.typed {
+            color: var(--accent-color);
+            text-shadow: 0 0 8px var(--accent-color);
+            font-size: 24px;
+        }
+
+        /* Enlarge Chinese characters */
+        .fruit-word .hanzi {
+            font-size: 32px;
+            color: var(--success-color);
+            display: block;
+            text-shadow: 0 0 5px rgba(46, 204, 113, 0.5);
+        }
+
+        .fruit.locked .fruit-icon {
+            transform: scale(1.2);
+        }
+        
+        .fruit.locked .fruit-word {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-color);
+        }
+
+        .target-reticle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            border: 4px dashed var(--accent-color);
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            z-index: 1;
+            animation: rotateReticle 4s linear infinite;
+        }
+
+        .fruit.locked .target-reticle {
+            opacity: 1;
+        }
+
+        @keyframes rotateReticle {
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Sidebar Leaderboard */
+        .sidebar-right {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            width: 250px;
+            height: calc(100vh - 180px);
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(46, 204, 113, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+            overflow: hidden;
+        }
+        
+        .sidebar-title {
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border-bottom: 1px solid rgba(46, 204, 113, 0.3);
+            background: rgba(46, 204, 113, 0.2);
+        }
+
+        .leaderboard-list {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 10px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .lb-item {
+            position: absolute;
+            width: calc(100% - 20px);
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .lb-item .lb-rank { font-weight: bold; width: 30px; }
+        .lb-item .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;}
+        .lb-item .lb-score { color: var(--success-color); font-family: monospace; font-weight: bold; }
+
+        .lb-item.rank-1 { background: linear-gradient(90deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 100%); border-color: gold; color: gold; z-index: 3; }
+        .lb-item.rank-2 { background: linear-gradient(90deg, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0) 100%); border-color: silver; color: silver; z-index: 2; }
+        .lb-item.rank-3 { background: linear-gradient(90deg, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0) 100%); border-color: #cd7f32; color: #cd7f32; z-index: 1; }
+        .lb-item.is-me { border: 2px solid var(--accent-color); box-shadow: inset 0 0 10px rgba(243, 156, 18, 0.3); }
+
+        .player-info {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(46, 204, 113, 0.3);
+            padding: 10px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            display: none;
+        }
+
+        .player-name {
+            font-size: 18px;
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .ground-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background: linear-gradient(to top, rgba(46, 204, 113, 0.4) 0%, transparent 100%);
+            border-top: 2px dashed rgba(46, 204, 113, 0.6);
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(13, 26, 18, 0.9);
+            z-index: 100;
+        }
+
+        .menu-card {
+            background: rgba(20, 40, 25, 0.8);
+            padding: 60px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--success-color);
+            box-shadow: 0 0 40px rgba(46, 204, 113, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .menu-title {
+            font-size: 56px;
+            margin-bottom: 10px;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: white;
+            text-shadow: 0 0 20px var(--success-color);
+        }
+
+        .btn-start {
+            margin-top: 30px;
+            padding: 15px 60px;
+            font-size: 24px;
+            background: var(--success-color);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-start:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(46, 204, 113, 0.5);
+            background: #27ae60;
+        }
+
+        .difficulty-selector {
+            margin: 30px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .difficulty-selector label {
+            cursor: pointer;
+            padding: 12px 24px;
+            border: 2px solid rgba(46, 204, 113, 0.4);
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0,0,0,0.2);
+        }
+
+        .difficulty-selector input[type="radio"] {
+            display: none;
+        }
+
+        .difficulty-selector label:has(input[type="radio"]:checked) {
+            border-color: var(--accent-color);
+            background: rgba(243, 156, 18, 0.15);
+        }
+
+        .combo-text {
+            position: absolute;
+            left: 40px;
+            bottom: 80px;
+            font-size: 100px;
+            font-weight: 900;
+            font-style: italic;
+            color: var(--accent-color);
+            opacity: 0.3;
+            pointer-events: none;
+            user-select: none;
+            transition: transform 0.1s, opacity 0.1s;
+            z-index: 10;
+        }
+
+        .lives-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .life-heart {
+            color: var(--danger-color);
+            font-size: 24px;
+            transition: all 0.3s;
+        }
+
+        .life-heart.lost {
+            color: #555;
+            transform: scale(0.8);
+            filter: grayscale(1);
+        }
+
+        .juice-burst {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 55;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 1;
+            box-shadow: 0 0 30px 15px currentColor;
+            background: currentColor;
+            animation: burstAnim 0.5s ease-out forwards;
+        }
+
+        @keyframes burstAnim {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        .screen-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(231, 76, 60, 0.3);
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .screen-flash.active {
+            opacity: 1;
+            animation: flashFade 0.5s ease-out;
+        }
+
+        @keyframes flashFade {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-leaves"></div>
+    <div class="screen-flash" id="screenFlash"></div>
+
+    <div class="game-header">
+        <div class="header-left">
+            <a href="practice.html" style="color: var(--success-color); text-decoration: none; font-weight: bold; border: 1px solid var(--success-color); padding: 5px 15px; border-radius: 20px;">[ 返回练习区 ]</a>
+            <button id="muteBtn" class="mute-btn" onclick="musicEngine.toggleMute()">音效: 开启</button>
+        </div>
+        <div class="stat-group">
+            <div class="stat-item">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value" id="scoreValue">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">COMBO</div>
+                <div class="stat-value" id="comboValue" style="color: var(--accent-color)">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">LIVES</div>
+                <div class="lives-container" id="livesContainer">
+                    <span class="life-heart">❤️</span>
+                    <span class="life-heart">❤️</span>
+                    <span class="life-heart">❤️</span>
+                    <span class="life-heart">❤️</span>
+                    <span class="life-heart">❤️</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 玩家信息栏 -->
+    <div class="player-info" id="playerInfoUI">
+        <div class="player-name" id="uiPlayerName">访客</div>
+    </div>
+
+    <!-- 排行榜系统 (Leaderboard) -->
+    <div class="sidebar-right" id="leaderboardSidebar">
+        <div class="sidebar-title">实时荣誉榜</div>
+        <ul class="leaderboard-list" id="lbList">
+            <!-- Items injected by JS -->
+        </ul>
+    </div>
+
+    <div id="gameArea">
+        <div class="ground-line"></div>
+        <div class="combo-text" id="bgComboText">0</div>
+
+        <div id="startOverlay" class="ui-overlay">
+            <div class="menu-card">
+                <h1 class="menu-title">拼音入门🍎</h1>
+                <p style="color: #bbb; font-size: 18px; letter-spacing: 2px; margin-bottom: 30px;">纯享打字版</p>
+                <div style="color: #ddd; line-height: 1.6; margin-bottom: 30px;">
+                    <p>不用切换输入法！直接敲击字母即可收割拼音对应的水果</p>
+                    <p>连续无误地收割可获得超高倍连击加成</p>
+                    <p>遗漏5个水果防线崩溃，游戏结束！</p>
+                </div>
+                <div class="difficulty-selector">
+                    <label>
+                        <input type="radio" name="difficulty" value="easy" checked>
+                        <span>简单 (慢速)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="difficulty" value="medium">
+                        <span>普通 (中速)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="difficulty" value="hard">
+                        <span>困难 (快速)</span>
+                    </label>
+                </div>
+                <button class="btn-start" id="startBtn">开始挑战</button>
+            </div>
+        </div>
+
+        <div id="gameOverOverlay" class="ui-overlay" style="display: none;">
+            <div class="menu-card">
+                <h1 class="menu-title" style="color: var(--danger-color); text-shadow: 0 0 20px var(--danger-color);">游戏结束</h1>
+                <div style="font-size: 80px; margin: 30px 0; color: var(--accent-color); font-weight: bold; font-family: monospace;" id="finalScore">0</div>
+                <p style="color: #aaa; margin-bottom: 40px;" id="finalStats">存活时间: 0秒 | 最大连击: 0</p>
+                
+                <button class="btn-start" onclick="location.reload()">再玩一次</button>
+                <div style="margin-top: 20px;">
+                    <a href="practice.html" style="color: #888; text-decoration: none;">返回主菜单</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/sound.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // 音效引擎 - 只保留输入音效、错误音效、连击音效
+        const musicEngine = {
+            ctx: null,
+            muted: localStorage.getItem('game_muted') === 'true',
+            
+            init() {
+                if (!this.ctx) {
+                    try {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch (e) { console.warn("AudioContext not supported"); }
+                }
+                this.updateMuteBtn();
+            },
+            
+            // 确保 AudioContext 已创建并处于运行状态
+            _ensureContext() {
+                this.init();
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                return this.ctx;
+            },
+            
+            // 收到水果的正确音效 - 清脆的"叮"声
+            playCorrect() {
+                if (this.muted) return;
+                const ctx = this._ensureContext();
+                if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, t);
+                osc.frequency.exponentialRampToValueAtTime(1800, t + 0.05);
+                
+                gain.gain.setValueAtTime(0.15, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.12);
+            },
+            
+            // 漏掉水果的错误音效 - 低沉的提示音
+            playError() {
+                if (this.muted) return;
+                const ctx = this._ensureContext();
+                if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, t);
+                osc.frequency.exponentialRampToValueAtTime(80, t + 0.25);
+                
+                gain.gain.setValueAtTime(0.12, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.25);
+            },
+            
+            // 连击音效 - 愉快的琶音
+            playCombo() {
+                if (this.muted) return;
+                const ctx = this._ensureContext();
+                if (!ctx) return;
+                const notes = [523, 659, 784, 1047];
+                notes.forEach((freq, i) => {
+                    const t = ctx.currentTime + i * 0.06;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.1, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.15);
+                });
+            },
+            
+            start() {
+                this.init();
+            },
+            
+            stop() {
+                // 无背景音乐，不需要停止
+            },
+            
+            toggleMute() {
+                this.muted = !this.muted;
+                localStorage.setItem('game_muted', this.muted);
+                this.updateMuteBtn();
+            },
+            
+            updateMuteBtn() {
+                const btn = document.getElementById('muteBtn');
+                if (btn) {
+                    btn.innerHTML = `音效: ${this.muted ? '关闭' : '开启'}`;
+                    btn.className = `mute-btn ${this.muted ? 'muted' : ''}`;
+                }
+            }
+        };
+
+        // 网络同步引擎 (排行榜)
+        const netEngine = {
+            socket: null,
+            myId: null,
+            myName: '访客',
+            init() {
+                try {
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    if (studentInfo.id && studentInfo.name) {
+                        this.myId = studentInfo.id;
+                        this.myName = studentInfo.name;
+                    } else {
+                        this.myId = 'guest_' + Math.floor(Math.random()*10000);
+                    }
+                    
+                    document.getElementById('uiPlayerName').innerText = this.myName;
+                    document.getElementById('playerInfoUI').style.display = 'block';
+                    document.getElementById('leaderboardSidebar').style.display = 'flex';
+
+                    // 预先渲染自己
+                    this.renderLeaderboard([{ username: this.myName, score: 0 }]);
+
+                    if (typeof io !== 'undefined') {
+                        this.socket = io();
+                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+
+                        this.socket.on('leaderboard_update', (list) => {
+                            if (list && list.length > 0) this.renderLeaderboard(list);
+                        });
+                    }
+                } catch(e) {
+                    console.warn("Socket.io initialization skipped or failed", e);
+                }
+            },
+            updateScore(score) {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('update_score', { score, wpm: 0 }); // fruit-catch wpm 用不上
+                } else {
+                    this.renderLeaderboard([{ username: this.myName, score }]);
+                }
+            },
+            resetScore() {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('reset_score');
+                }
+            },
+            renderLeaderboard(list) {
+                const ul = document.getElementById('lbList');
+                const ITEM_HEIGHT = 45; 
+                
+                // 缓存 DOM 元素
+                const existingItems = new Map();
+                Array.from(ul.children).forEach(li => {
+                    existingItems.set(li.dataset.name, li);
+                });
+
+                list.forEach((p, idx) => {
+                    const currentRank = idx + 1;
+                    const isMe = p.username === this.myName;
+                    
+                    let li = existingItems.get(p.username);
+                    if (!li) {
+                        li = document.createElement('li');
+                        li.className = 'lb-item';
+                        li.dataset.name = p.username;
+                        li.innerHTML = `
+                            <span class="lb-rank"></span>
+                            <span class="lb-name"></span>
+                            <span class="lb-score"></span>
+                        `;
+                        ul.appendChild(li);
+                    } else {
+                        existingItems.delete(p.username);
+                    }
+                    
+                    li.querySelector('.lb-rank').innerText = currentRank;
+                    li.querySelector('.lb-score').innerText = p.score;
+                    li.querySelector('.lb-name').innerText = p.username;
+                    
+                    li.style.transform = `translateY(${idx * ITEM_HEIGHT}px)`;
+                    li.classList.remove('rank-1', 'rank-2', 'rank-3', 'is-me');
+                    if (currentRank === 1) li.classList.add('rank-1');
+                    if (currentRank === 2) li.classList.add('rank-2');
+                    if (currentRank === 3) li.classList.add('rank-3');
+                    if (isMe) li.classList.add('is-me');
+                });
+
+                existingItems.forEach(li => li.remove());
+            }
+        };
+
+        const words = [
+            { char: '苹', pinyin: 'ping', icon: '🍎', color: '#ff4757' },
+            { char: '香', pinyin: 'xiang', icon: '🍌', color: '#f1c40f' },
+            { char: '葡', pinyin: 'pu', icon: '🍇', color: '#9b59b6' },
+            { char: '萄', pinyin: 'tao', icon: '🍇', color: '#9b59b6' },
+            { char: '橙', pinyin: 'cheng', icon: '🍊', color: '#e67e22' },
+            { char: '梨', pinyin: 'li', icon: '🍐', color: '#2ecc71' },
+            { char: '桃', pinyin: 'tao', icon: '🍑', color: '#ff7f50' },
+            { char: '西', pinyin: 'xi', icon: '🍉', color: '#ff6b81' },
+            { char: '瓜', pinyin: 'gua', icon: '🍈', color: '#7bed9f' },
+            { char: '莓', pinyin: 'mei', icon: '🍓', color: '#ff4757' },
+            { char: '柚', pinyin: 'you', icon: '🍋', color: '#f1c40f' },
+            { char: '桔', pinyin: 'ju', icon: '🍊', color: '#e67e22' },
+            { char: '樱', pinyin: 'ying', icon: '🍒', color: '#ff4757' },
+            { char: '椰', pinyin: 'ye', icon: '🥥', color: '#bdc3c7' },
+            { char: '柿', pinyin: 'shi', icon: '🍅', color: '#e67e22' },
+            { char: '李', pinyin: 'li', icon: '🫐', color: '#9b59b6' }
+        ];
+
+        const difficulties = {
+            easy: { speedBase: 80, spawnBase: 2500, scoreMult: 1 },
+            medium: { speedBase: 120, spawnBase: 1500, scoreMult: 2 },
+            hard: { speedBase: 180, spawnBase: 1000, scoreMult: 3 }
+        };
+
+        // 状态
+        let gameState = 'MENU';
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let lives = 5;
+        let startTime = 0;
+        let playDuration = 0;
+        
+        let difficulty = difficulties.easy;
+        let activeFruits = [];
+        let lockedFruit = null;
+        
+        let lastFrameTime = 0;
+        let spawnTimer = 0;
+        let animationFrameId = null;
+
+        const playSfx = (type) => {
+            if (type === 'hit') musicEngine.playCorrect();
+            else if (type === 'miss') musicEngine.playError();
+            else if (type === 'combo') musicEngine.playCombo();
+        };
+
+        const gameArea = document.getElementById('gameArea');
+        const scoreEl = document.getElementById('scoreValue');
+        const comboEl = document.getElementById('comboValue');
+        const bgComboEl = document.getElementById('bgComboText');
+        const livesEl = document.getElementById('livesContainer');
+        const flashEl = document.getElementById('screenFlash');
+
+        document.getElementById('startBtn').addEventListener('click', () => {
+            const diffSelect = document.querySelector('input[name="difficulty"]:checked').value;
+            difficulty = difficulties[diffSelect];
+            
+            document.getElementById('startOverlay').style.display = 'none';
+            netEngine.init();
+            musicEngine.start();
+            startGame();
+        });
+
+        function startGame() {
+            gameState = 'PLAYING';
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            lives = 5;
+            startTime = Date.now();
+            activeFruits = [];
+            lockedFruit = null;
+            
+            updateUI();
+            
+            lastFrameTime = performance.now();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        let lastScoreUpdate = 0;
+
+        function gameLoop(timestamp) {
+            if (gameState !== 'PLAYING') return;
+            
+            const deltaTime = (timestamp - lastFrameTime) / 1000;
+            lastFrameTime = timestamp;
+            
+            spawnTimer += deltaTime * 1000;
+            
+            playDuration = Math.floor((Date.now() - startTime) / 1000);
+            const intensity = 1 + (playDuration / 60) * 0.5;
+
+            if (spawnTimer >= difficulty.spawnBase / intensity) {
+                spawnFruit();
+                spawnTimer = 0;
+            }
+
+            const heightLimit = gameArea.clientHeight - 60;
+            
+            for (let i = activeFruits.length - 1; i >= 0; i--) {
+                const fruit = activeFruits[i];
+                const currentSpeed = difficulty.speedBase * intensity;
+                const newY = fruit.y + currentSpeed * deltaTime;
+                fruit.y = newY;
+                
+                fruit.element.style.transform = `translateY(${newY}px)`;
+                
+                if (newY >= heightLimit) {
+                    handleMiss(fruit, i);
+                }
+            }
+
+            // Publish score to leaderboard periodically
+            if (Date.now() - lastScoreUpdate > 1000) {
+                netEngine.updateScore(score);
+                lastScoreUpdate = Date.now();
+            }
+            
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function spawnFruit() {
+            if(activeFruits.length > 5) return; // limit cluster
+
+            const word = words[Math.floor(Math.random() * words.length)];
+            const fruitData = {
+                word: word,
+                pinyin: word.pinyin,
+                typedCount: 0,
+                y: -150,
+                id: Math.random().toString(36).substr(2, 9)
+            };
+            
+            const el = document.createElement('div');
+            el.className = 'fruit';
+            
+            const sidebarWidth = document.getElementById('leaderboardSidebar').offsetWidth || 250;
+            const maxX = gameArea.clientWidth - sidebarWidth - 150;
+            const xPos = Math.max(50, Math.random() * maxX);
+            el.style.left = xPos + 'px';
+            el.style.transform = `translateY(-150px)`;
+            
+            el.innerHTML = `
+                <div class="target-reticle"></div>
+                <div class="fruit-icon">${word.icon}</div>
+                <div class="fruit-word">
+                    <span class="pinyin">${word.pinyin}</span><span class="hanzi">${word.char}</span>
+                </div>
+            `;
+            
+            gameArea.appendChild(el);
+            fruitData.element = el;
+            
+            activeFruits.push(fruitData);
+        }
+
+        function handleMiss(fruit, index) {
+            fruit.element.remove();
+            activeFruits.splice(index, 1);
+            
+            if (lockedFruit === fruit) {
+                lockedFruit = null;
+            }
+            
+            combo = 0;
+            lives--;
+            updateUI();
+            playSfx('miss');
+            
+            flashEl.classList.remove('active');
+            void flashEl.offsetWidth;
+            flashEl.classList.add('active');
+            
+            if (lives <= 0) {
+                endGame();
+            }
+        }
+
+        function updateFruitSpelling(fruit) {
+            const pinyinEl = fruit.element.querySelector('.pinyin');
+            const typedText = fruit.pinyin.substring(0, fruit.typedCount);
+            const remaining = fruit.pinyin.substring(fruit.typedCount);
+            pinyinEl.innerHTML = `<span class="typed">${typedText}</span>${remaining}`;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (gameState !== 'PLAYING') return;
+            
+            if (!/^[a-zA-Z]$/.test(e.key) || e.ctrlKey || e.altKey || e.metaKey) return;
+            
+            const char = e.key.toLowerCase();
+            
+            if (lockedFruit) {
+                if (char === lockedFruit.pinyin[lockedFruit.typedCount]) {
+                    lockedFruit.typedCount++;
+                    updateFruitSpelling(lockedFruit);
+                    
+                    if (lockedFruit.typedCount === lockedFruit.pinyin.length) {
+                        catchFruit(lockedFruit);
+                    } else {
+                        playSfx('hit');
+                    }
+                } else {
+                    combo = 0;
+                    playSfx('miss');
+                    updateUI();
+                    
+                    lockedFruit.element.style.transform += ' translateX(10px)';
+                    setTimeout(() => {
+                        if(lockedFruit && lockedFruit.element) {
+                            lockedFruit.element.style.transform = lockedFruit.element.style.transform.replace(' translateX(10px)', '');
+                        }
+                    }, 50);
+                }
+            } else {
+                const matching = activeFruits.filter(f => f.pinyin[0] === char);
+                
+                if (matching.length > 0) {
+                    matching.sort((a, b) => b.y - a.y);
+                    lockedFruit = matching[0];
+                    lockedFruit.element.classList.add('locked');
+                    lockedFruit.typedCount = 1;
+                    updateFruitSpelling(lockedFruit);
+                    playSfx('hit');
+                    
+                    if (lockedFruit.typedCount === lockedFruit.pinyin.length) {
+                        catchFruit(lockedFruit);
+                    }
+                } else {
+                    combo = 0;
+                    updateUI();
+                }
+            }
+        });
+
+        function catchFruit(fruit) {
+            const baseScore = fruit.pinyin.length * 5;
+            const comboBonus = Math.floor(combo * 1.5);
+            score += (baseScore + comboBonus) * difficulty.scoreMult;
+            
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+            
+            createExplosion(fruit);
+            
+            const idx = activeFruits.indexOf(fruit);
+            if (idx > -1) {
+                activeFruits.splice(idx, 1);
+            }
+            fruit.element.remove();
+            lockedFruit = null;
+            
+            // 收到水果时播放正确音效
+            playSfx('hit');
+            
+            // 每3连击触发一次连击音效
+            if (combo > 0 && combo % 3 === 0) {
+                playSfx('combo');
+            }
+            
+            updateUI();
+        }
+
+        function createExplosion(fruit) {
+            const rect = fruit.element.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            
+            const burst = document.createElement('div');
+            burst.className = 'juice-burst';
+            burst.style.color = fruit.word.color;
+            burst.style.left = x + 'px';
+            burst.style.top = y + 'px';
+            document.body.appendChild(burst);
+            
+            const floatingScore = document.createElement('div');
+            floatingScore.style.position = 'absolute';
+            floatingScore.style.left = x + 'px';
+            floatingScore.style.top = (y - 30) + 'px';
+            floatingScore.style.color = '#fff';
+            floatingScore.style.fontWeight = 'bold';
+            floatingScore.style.fontSize = '24px';
+            floatingScore.style.textShadow = `0 0 10px ${fruit.word.color}`;
+            floatingScore.style.zIndex = '100';
+            floatingScore.style.pointerEvents = 'none';
+            floatingScore.innerText = '+' + ((fruit.pinyin.length * 5 + Math.floor((combo-1)*1.5)) * difficulty.scoreMult);
+            
+            floatingScore.animate([
+                { transform: 'translateY(0)', opacity: 1 },
+                { transform: 'translateY(-50px)', opacity: 0 }
+            ], { duration: 800, easing: 'ease-out' });
+            
+            document.body.appendChild(floatingScore);
+            
+            setTimeout(() => {
+                burst.remove();
+                floatingScore.remove();
+            }, 800);
+        }
+
+        function updateUI() {
+            scoreEl.innerText = score;
+            comboEl.innerText = combo;
+            
+            if (combo > 2) {
+                bgComboEl.innerText = combo + 'x';
+                bgComboEl.style.opacity = Math.min(0.8, 0.2 + combo * 0.05);
+                bgComboEl.style.transform = `scale(${1 + combo * 0.02})`;
+            } else {
+                bgComboEl.style.opacity = '0';
+            }
+            
+            const hearts = livesEl.querySelectorAll('.life-heart');
+            hearts.forEach((heart, i) => {
+                if (i < lives) {
+                    heart.classList.remove('lost');
+                } else {
+                    heart.classList.add('lost');
+                }
+            });
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            
+            cancelAnimationFrame(animationFrameId);
+            musicEngine.stop();
+            
+            activeFruits.forEach(f => f.element.remove());
+            activeFruits = [];
+            lockedFruit = null;
+            
+            playDuration = Math.floor((Date.now() - startTime) / 1000);
+            
+            netEngine.resetScore();
+            
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+            if (studentInfo.id) {
+                if (typeof submitPractice === 'function') {
+                    submitPractice({
+                        student_id: studentInfo.id,
+                        mode: 'fruit-catch',
+                        score: score,
+                        duration: playDuration,
+                        extra_data: { combo: maxCombo, difficulty: difficulty.scoreMult }
+                    }).catch(err => console.error('保存记录失败:', err));
+                }
+            }
+            
+            document.getElementById('finalScore').innerText = score;
+            document.getElementById('finalStats').innerText = `存活时间: ${playDuration}秒 | 最大连击: ${maxCombo}`;
+            document.getElementById('gameOverOverlay').style.display = 'flex';
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            // 无背景音乐，不需要处理
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 我的年级</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .grade-container { max-width: 1200px; }
+        .grade-header {
+            background: linear-gradient(135deg, #DC143C 0%, #8B0000 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #DC143C;
+            margin: 10px 0;
+        }
+        .stat-label { color: #888; font-size: 14px; }
+        .rank-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .rank-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .rank-tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .rank-tab.active {
+            color: #DC143C;
+            border-bottom-color: #DC143C;
+            font-weight: bold;
+        }
+        .rank-list { display: none; }
+        .rank-list.active { display: block; }
+    </style>
+</head>
+
+    <div class="global-header">
+        <div class="logo-section">
+            <span class="logo-icon">📚</span>
+            <span class="logo-text">苹湖拼音打字系统</span>
+        </div>
+        <div class="user-section" id="headerUserInfo"></div>
+    </div>
+
+    <div class="container grade-container">
+        <div class="grade-header">
+            <div style="font-size: 60px; margin-bottom: 15px;">🏫</div>
+            <h1 style="color: white; margin-bottom: 10px;" id="gradeName">加载中...</h1>
+            <p style="opacity: 0.9; font-size: 18px;">年级数据统计与排行</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div style="font-size: 40px;">👥</div>
+                <div class="stat-value" id="totalStudents">0</div>
+                <div class="stat-label">年级总人数</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 40px;">⚡</div>
+                <div class="stat-value" id="avgSpeed">0</div>
+                <div class="stat-label">年级平均速度</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 40px;">🎯</div>
+                <div class="stat-value" id="avgAccuracy">0%</div>
+                <div class="stat-label">年级平均准确率</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 40px;">🏆</div>
+                <div class="stat-value" id="myRank">-</div>
+                <div class="stat-label">我的排名</div>
+            </div>
+        </div>
+
+        <div class="rank-section">
+            <h2>📊 多维度排行榜</h2>
+            <div class="rank-tabs">
+                <div class="rank-tab active" onclick="switchTab('speed')">速度排行</div>
+                <div class="rank-tab" onclick="switchTab('accuracy')">准确率排行</div>
+                <div class="rank-tab" onclick="switchTab('practice')">练习时长排行</div>
+                <div class="rank-tab" onclick="switchTab('consecutive')">连续天数排行</div>
+            </div>
+
+            <div id="speedRank" class="rank-list active"></div>
+            <div id="accuracyRank" class="rank-list"></div>
+            <div id="practiceRank" class="rank-list"></div>
+            <div id="consecutiveRank" class="rank-list"></div>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="btn btn-warning" onclick="location.href='home.html'">返回大厅</button>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // 认证检查
+        const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+        if (!studentInfo.id) {
+            alert('请先登录');
+            location.href = 'login.html';
+        }
+        document.getElementById('headerUserInfo').innerHTML = `<span class="header-user-info">${studentInfo.name} - ${studentInfo.class}</span>`;
+
+        async function loadGradeData() {
+            document.getElementById('gradeName').textContent = studentInfo.class || '加载中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/grade/stats?grade=${encodeURIComponent(studentInfo.class)}&student_id=${studentInfo.id}`);
+                const data = await response.json();
+
+                document.getElementById('totalStudents').textContent = data.totalStudents || 0;
+                document.getElementById('avgSpeed').textContent = data.avgSpeed || 0;
+                document.getElementById('avgAccuracy').textContent = (data.avgAccuracy || 0) + '%';
+                document.getElementById('myRank').textContent = data.myRank || '-';
+
+                renderRankings(data.rankings);
+            } catch (err) {
+                console.error('加载年级数据失败:', err);
+            }
+        }
+
+        function renderRankings(rankings) {
+            const types = ['speed', 'accuracy', 'practice', 'consecutive'];
+            const labels = {
+                speed: { value: '速度', unit: '字/分' },
+                accuracy: { value: '准确率', unit: '%' },
+                practice: { value: '练习时长', unit: '分钟' },
+                consecutive: { value: '连续天数', unit: '天' }
+            };
+
+            types.forEach(type => {
+                const list = rankings[type] || [];
+                const container = document.getElementById(type + 'Rank');
+                const medals = ['🥇', '🥈', '🥉'];
+
+                container.innerHTML = list.slice(0, 10).map((item, i) => {
+                    const medal = i < 3 ? medals[i] : (i + 1);
+                    const isMe = item.id === studentInfo.id;
+                    return `<div class="rank-item" style="${isMe ? 'background: #f8f9ff; border-left: 4px solid #DC143C;' : ''}">
+                        <div class="rank-number ${i < 3 ? 'rank-' + ['gold','silver','bronze'][i] : ''}">${medal}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; font-size: 18px;">${item.name}${isMe ? ' (我)' : ''}</div>
+                            <div style="color: #888; font-size: 14px;">${item.class}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 24px; font-weight: bold; color: #DC143C;">${item.value} ${labels[type].unit}</div>
+                        </div>
+                    </div>`;
+                }).join('') || '<div style="text-align: center; color: #888; padding: 20px;">暂无数据</div>';
+            });
+        }
+
+        function switchTab(type) {
+            document.querySelectorAll('.rank-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.rank-list').forEach(list => list.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(type + 'Rank').classList.add('active');
+        }
+
+        loadGradeData();
+    </script>
+</body>
+</html>

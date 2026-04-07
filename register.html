@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生注册</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { padding-top: 0; }
+        .register-container {
+            max-width: 500px;
+            text-align: center;
+        }
+        .logo-section-center {
+            margin-bottom: 30px;
+        }
+        .logo-section-center .logo-icon {
+            font-size: 60px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .logo-section-center .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .grade-class-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .school-row {
+            margin-bottom: 15px;
+        }
+        /* 安全相关样式 */
+        .reg-code-section {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .reg-code-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #0369a1;
+        }
+        .reg-code-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        .reg-code-display .code {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0c4a6e;
+            letter-spacing: 4px;
+            font-family: monospace;
+        }
+        .reg-code-display .refresh-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            background: #0284c7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .reg-code-display .refresh-btn:hover {
+            background: #0369a1;
+        }
+        .reg-code-display .refresh-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .reg-code-timer {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+        .teacher-select {
+            position: relative;
+        }
+        .teacher-select select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 30px;
+        }
+        .validation-error {
+            border-color: #ef4444 !important;
+        }
+        .validation-message {
+            color: #ef4444;
+            font-size: 12px;
+            text-align: left;
+            margin-top: 4px;
+            display: none;
+        }
+        .input-error .validation-message {
+            display: block;
+        }
+        .input-error input,
+        .input-error select {
+            border-color: #ef4444;
+        }
+        .device-lock-warning {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container register-container">
+        <div class="logo-section-center">
+            <span class="logo-icon">📚</span>
+            <span class="logo-text">拼音打字系统</span>
+        </div>
+
+        <h1 style="margin-bottom: 30px;">学生注册</h1>
+
+        <!-- 设备锁定警告 -->
+        <div id="deviceLockWarning" class="device-lock-warning" style="display: none;">
+            <strong>⚠️ 设备已锁定</strong>
+            <p id="lockMessage" style="margin: 10px 0 0 0; font-size: 14px;"></p>
+        </div>
+
+        <!-- 注册码区域 -->
+        <div class="reg-code-section">
+            <label>📝 课堂注册码</label>
+            <div class="reg-code-display">
+                <span class="code" id="regCodeDisplay">------</span>
+                <button type="button" class="refresh-btn" id="refreshRegCodeBtn" onclick="refreshRegCode()">刷新</button>
+            </div>
+            <div class="reg-code-timer" id="regCodeTimer"></div>
+        </div>
+
+        <form id="registerForm" onsubmit="handleRegister(event)">
+            <div class="form-group input-error" id="nameGroup">
+                <label>姓名 <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="name" placeholder="请输入你的姓名（2-4个汉字）" required>
+                <div class="validation-message" id="nameError">姓名必须为2-4个中文字符</div>
+            </div>
+
+            <div class="form-group">
+                <div class="school-row">
+                    <label>学校</label>
+                    <select id="school" required onchange="updateGradeClassOptions()">
+                        <option value="">请选择学校</option>
+                        <option value="谷山学校">谷山学校</option>
+                        <option value="中华路小学">中华路小学</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="grade-class-row">
+                    <div>
+                        <label>年级</label>
+                        <select id="grade" required onchange="updateClassOptions()">
+                            <option value="">请选择年级</option>
+                            <option value="1">一年级</option>
+                            <option value="2">二年级</option>
+                            <option value="3">三年级</option>
+                            <option value="4">四年级</option>
+                            <option value="5">五年级</option>
+                            <option value="6">六年级</option>
+                            <option value="7">七年级</option>
+                            <option value="8">八年级</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>班级</label>
+                        <select id="classNumber" required>
+                            <option value="">请先选择年级</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 教师选择 -->
+            <div class="form-group teacher-select">
+                <label>授课教师 <span style="color: #ef4444;">*</span></label>
+                <select id="teacher" required>
+                    <option value="">请选择授课教师</option>
+                </select>
+            </div>
+
+            <!-- 生日（双因子认证） -->
+            <div class="form-group input-error" id="birthdayGroup">
+                <label>生日 <span style="color: #ef4444;">*</span> <span style="font-weight: normal; color: #64748b;">（用于登录验证，请如实填写）</span></label>
+                <input type="date" id="birthday" required>
+                <div class="validation-message" id="birthdayError">请选择有效的生日日期</div>
+            </div>
+
+            <!-- 注册码输入 -->
+            <div class="form-group input-error" id="regCodeGroup">
+                <label>输入注册码 <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="regCode" placeholder="请输入上方显示的6位注册码" maxlength="6" required>
+                <div class="validation-message" id="regCodeError">请输入6位注册码</div>
+            </div>
+
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" placeholder="请输入密码(至少6位)" minlength="6" required>
+            </div>
+
+            <div class="form-group">
+                <label>确认密码</label>
+                <input type="password" id="confirmPassword" placeholder="请再次输入密码" minlength="6" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;" id="registerBtn">注册</button>
+        </form>
+
+        <div class="link-text">
+            已有账号？<a href="index.html">去登录</a>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        // ==================== 设备UUID管理 ====================
+        const DEVICE_ID_KEY = 'printword_device_uuid';
+        
+        // 获取或生成设备UUID
+        function getDeviceId() {
+            let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+            if (!deviceId) {
+                deviceId = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem(DEVICE_ID_KEY, deviceId);
+            }
+            return deviceId;
+        }
+
+        // ==================== 注册码相关 ====================
+        let regCodeExpireTimer = null;
+        let regCodeExpireTime = null;
+
+        // 刷新注册码
+        async function refreshRegCode() {
+            const btn = document.getElementById('refreshRegCodeBtn');
+            const display = document.getElementById('regCodeDisplay');
+            const timer = document.getElementById('regCodeTimer');
+            
+            btn.disabled = true;
+            btn.textContent = '加载中...';
+
+            try {
+                const response = await fetch('/api/auth/reg-code');
+                const data = await response.json();
+                
+                if (data.success) {
+                    display.textContent = data.code;
+                    regCodeExpireTime = new Date(data.expiresAt);
+                    startRegCodeTimer();
+                } else {
+                    alert(data.error || '获取注册码失败');
+                }
+            } catch (err) {
+                console.error('获取注册码失败:', err);
+                alert('获取注册码失败，请检查网络连接');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '刷新';
+            }
+        }
+
+        // 启动注册码倒计时
+        function startRegCodeTimer() {
+            if (regCodeExpireTimer) {
+                clearInterval(regCodeExpireTimer);
+            }
+
+            regCodeExpireTimer = setInterval(() => {
+                const now = new Date();
+                const remaining = Math.max(0, Math.floor((regCodeExpireTime - now) / 1000));
+                
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                
+                const timer = document.getElementById('regCodeTimer');
+                timer.textContent = `有效期: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                if (remaining <= 0) {
+                    clearInterval(regCodeExpireTimer);
+                    timer.textContent = '注册码已过期，请刷新获取新码';
+                    document.getElementById('regCodeDisplay').textContent = '------';
+                }
+            }, 1000);
+        }
+
+        // ==================== 教师列表 ====================
+        async function loadTeachers() {
+            try {
+                const response = await fetch('/api/auth/teachers');
+                const data = await response.json();
+                
+                if (data.success && data.teachers) {
+                    const teacherSelect = document.getElementById('teacher');
+                    let options = '<option value="">请选择授课教师</option>';
+                    // 新的 API 返回数组包含对象，提取 name 属性
+                    data.teachers.forEach(teacher => {
+                        options += `<option value="${teacher.name}">${teacher.name}</option>`;
+                    });
+                    teacherSelect.innerHTML = options;
+                }
+            } catch (err) {
+                console.error('加载教师列表失败:', err);
+            }
+        }
+
+        // ==================== 表单验证 ====================
+        // 姓名验证（2-4个中文字符）
+        function validateName(name) {
+            const regex = /^[\u4e00-\u9fa5]{2,4}$/;
+            const isValid = regex.test(name);
+            
+            const group = document.getElementById('nameGroup');
+            const error = document.getElementById('nameError');
+            
+            if (!isValid) {
+                group.classList.add('input-error');
+                error.textContent = '姓名必须为2-4个中文字符';
+            } else {
+                group.classList.remove('input-error');
+            }
+            
+            return isValid;
+        }
+
+        // 生日验证
+        function validateBirthday(birthday) {
+            if (!birthday) return false;
+            
+            const date = new Date(birthday);
+            const now = new Date();
+            const year = date.getFullYear();
+            
+            const isValid = !isNaN(date.getTime()) && year >= 1900 && year <= 2020;
+            
+            const group = document.getElementById('birthdayGroup');
+            const error = document.getElementById('birthdayError');
+            
+            if (!isValid) {
+                group.classList.add('input-error');
+                error.textContent = '请选择有效的生日日期（1900-2020年）';
+            } else {
+                group.classList.remove('input-error');
+            }
+            
+            return isValid;
+        }
+
+        // 注册码验证
+        function validateRegCode(code) {
+            const isValid = /^\d{6}$/.test(code);
+            
+            const group = document.getElementById('regCodeGroup');
+            const error = document.getElementById('regCodeError');
+            
+            if (!isValid) {
+                group.classList.add('input-error');
+                error.textContent = '请输入6位数字注册码';
+            } else {
+                group.classList.remove('input-error');
+            }
+            
+            return isValid;
+        }
+
+        // ==================== 表单提交 ====================
+        async function handleRegister(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const school = document.getElementById('school').value;
+            const grade = parseInt(document.getElementById('grade').value);
+            const classNumber = parseInt(document.getElementById('classNumber').value);
+            const teacher = document.getElementById('teacher').value;
+            const birthday = document.getElementById('birthday').value;
+            const regCode = document.getElementById('regCode').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const deviceId = getDeviceId();
+
+            // 表单验证
+            if (!validateName(name)) {
+                document.getElementById('name').focus();
+                return;
+            }
+            
+            if (!school) {
+                alert('请先选择学校');
+                document.getElementById('school').focus();
+                return;
+            }
+            if (!grade) {
+                alert('请选择年级');
+                document.getElementById('grade').focus();
+                return;
+            }
+            if (!classNumber) {
+                alert('请选择班级');
+                document.getElementById('classNumber').focus();
+                return;
+            }
+            if (!teacher) {
+                alert('请选择授课教师');
+                document.getElementById('teacher').focus();
+                return;
+            }
+            if (!validateBirthday(birthday)) {
+                document.getElementById('birthday').focus();
+                return;
+            }
+            if (!validateRegCode(regCode)) {
+                document.getElementById('regCode').focus();
+                return;
+            }
+            if (password !== confirmPassword) {
+                alert('两次密码输入不一致，请重新输入');
+                return;
+            }
+            if (password.length < 6) {
+                alert('密码长度至少6位');
+                return;
+            }
+
+            // 检查注册码是否过期
+            if (regCodeExpireTime && new Date() > regCodeExpireTime) {
+                alert('注册码已过期，请刷新后重试');
+                refreshRegCode();
+                return;
+            }
+
+            const btn = document.getElementById('registerBtn');
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        school,
+                        grade,
+                        class_number: classNumber,
+                        teacher,
+                        birthday,
+                        regCode,
+                        password,
+                        confirmPassword,
+                        deviceId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`注册成功！\n您的学号是：${result.student.student_no}\n请牢记您的学号，登录时需要使用。`);
+                    location.href = 'login.html';
+                } else {
+                    // 检查是否设备锁定
+                    if (result.locked) {
+                        document.getElementById('deviceLockWarning').style.display = 'block';
+                        document.getElementById('lockMessage').textContent = result.error;
+                    } else {
+                        alert(result.error || '注册失败');
+                    }
+                }
+            } catch (err) {
+                alert('注册失败，请检查网络连接');
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '注册';
+            }
+        }
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载教师列表
+            loadTeachers();
+            
+            // 初始获取注册码
+            refreshRegCode();
+
+            // 实时验证
+            document.getElementById('name').addEventListener('blur', function() {
+                validateName(this.value.trim());
+            });
+            document.getElementById('birthday').addEventListener('change', function() {
+                validateBirthday(this.value);
+            });
+            document.getElementById('regCode').addEventListener('input', function() {
+                validateRegCode(this.value.trim());
+            });
+        });
+    </script>
+</body>
+</html>

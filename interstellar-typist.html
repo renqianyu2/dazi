@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 键盘基础练习</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --space-bg: #05070a;
+            --accent-color: #00f2ff;
+            --danger-color: #ff2d55;
+            --success-color: #00ff88;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --neon-glow: 0 0 10px var(--accent-color), 0 0 20px var(--accent-color);
+        }
+
+        body {
+            background: var(--space-bg);
+            color: white;
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+
+        /* 视差星空背景 */
+        .stars-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1a1c2c 0%, #05070a 100%);
+        }
+
+        .star-layer {
+            position: absolute;
+            top: -100%;
+            left: 0;
+            width: 100%;
+            height: 200%;
+            background-repeat: repeat;
+            opacity: 0.3;
+        }
+
+        .layer-1 {
+            background-image: radial-gradient(1px 1px at 20px 30px, #fff, rgba(0, 0, 0, 0)), radial-gradient(1px 1px at 150px 45px, #fff, rgba(0, 0, 0, 0));
+            background-size: 200px 200px;
+            animation: parallax 100s linear infinite;
+        }
+
+        .layer-2 {
+            background-image: radial-gradient(1.5px 1.5px at 50px 160px, #ddd, rgba(0, 0, 0, 0)), radial-gradient(1.5px 1.5px at 110px 10px, #aaa, rgba(0, 0, 0, 0));
+            background-size: 300px 300px;
+            animation: parallax 150s linear infinite;
+        }
+
+        @keyframes parallax {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(50%);
+            }
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+            z-index: 50;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .mute-btn {
+            background: none;
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            color: var(--accent-color);
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .mute-btn:hover {
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .mute-btn.muted {
+            color: #555;
+            border-color: #333;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 40px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: #00f2ff;
+            opacity: 0.7;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 800;
+            font-family: monospace;
+        }
+
+        #gameArea {
+            flex: 1 1 auto;
+            min-height: 0;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 敌人样式 */
+        .enemy {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            will-change: transform;
+        }
+
+        .enemy-svg {
+            filter: drop-shadow(0 0 8px currentColor);
+            transition: transform 0.2s;
+        }
+
+        /* 准星特效 */
+        .crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border: 2px dashed var(--danger-color);
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 0 15px var(--danger-color), inset 0 0 15px var(--danger-color);
+        }
+
+        @keyframes crosshairSpin {
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        .enemy.locked .crosshair {
+            opacity: 1;
+            animation: crosshairSpin 2s linear infinite;
+        }
+
+        .enemy.locked .enemy-svg {
+            transform: scale(1.1);
+        }
+
+        .enemy-word {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 18px;
+            margin-top: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: bold;
+        }
+
+        .enemy-word span.typed {
+            color: var(--accent-color);
+            text-shadow: var(--neon-glow);
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* 烟花特效类 */
+        .firework-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+            mix-blend-mode: screen;
+        }
+
+        /* 性能优化的单一光晕爆发代替海量粒子烟花 */
+        .light-burst {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 55;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 1;
+            box-shadow: 0 0 40px 20px currentColor;
+            background: currentColor;
+            animation: burstAnim 0.6s ease-out forwards;
+        }
+
+        @keyframes burstAnim {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 7, 10, 0.9);
+            z-index: 100;
+        }
+
+        .menu-card {
+            background: #0d1117;
+            padding: 60px;
+            border-radius: 4px;
+            text-align: center;
+            border: 1px solid var(--accent-color);
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.1);
+        }
+
+        .menu-title {
+            font-size: 56px;
+            margin-bottom: 20px;
+            font-weight: 900;
+            letter-spacing: 10px;
+            text-shadow: 0 0 20px var(--accent-color);
+        }
+
+        .btn-start {
+            margin-top: 30px;
+            padding: 12px 50px;
+            font-size: 20px;
+            background: transparent;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 4px;
+        }
+
+        .btn-start:hover {
+            background: var(--accent-color);
+            color: #000;
+            box-shadow: 0 0 30px var(--accent-color);
+        }
+
+        .difficulty-selector {
+            margin: 25px 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .difficulty-selector label {
+            cursor: pointer;
+            padding: 8px 16px;
+            border: 1px solid rgba(0, 242, 255, 0.4);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .difficulty-selector label:hover {
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .difficulty-selector input[type="radio"] {
+            display: none;
+        }
+
+        .difficulty-selector input[type="radio"]:checked + span {
+            color: var(--accent-color);
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--accent-color);
+        }
+        
+        .difficulty-selector label:has(input[type="radio"]:checked) {
+            border-color: var(--accent-color);
+            background: rgba(0, 242, 255, 0.15);
+            box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.2);
+        }
+
+        .combo-text {
+            position: absolute;
+            left: 24px;
+            bottom: 24px;
+            font-size: 80px;
+            font-weight: 900;
+            font-style: italic;
+            color: var(--accent-color);
+            opacity: 0.4;
+            pointer-events: none;
+            user-select: none;
+            transform-origin: left bottom;
+            transition: transform 0.1s, opacity 0.1s;
+        }
+
+        /* 玩家信息 & 排行榜栏 */
+        .player-info {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+        }
+
+        .player-name {
+            font-size: 18px;
+            color: #00f2ff;
+            font-weight: bold;
+        }
+
+        .sidebar-right {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            width: 250px;
+            height: calc(100vh - 180px);
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+            overflow: hidden;
+        }
+
+        .sidebar-title {
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .leaderboard-list {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 10px;
+            list-style: none;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .lb-item {
+            position: absolute;
+            width: calc(100% - 20px);
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s;
+        }
+
+        .lb-item .lb-rank { font-weight: bold; width: 30px; }
+        .lb-item .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lb-item .lb-score { color: var(--accent-color); font-family: monospace; font-weight: bold; }
+
+        .lb-item.rank-1 { background: linear-gradient(90deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 100%); border-color: gold; color: gold; z-index: 3; }
+        .lb-item.rank-2 { background: linear-gradient(90deg, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0) 100%); border-color: silver; color: silver; z-index: 2; }
+        .lb-item.rank-3 { background: linear-gradient(90deg, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0) 100%); border-color: #cd7f32; color: #cd7f32; z-index: 1; }
+
+        .rank-1::before {
+            content: "👑 ";
+            font-size: 14px;
+        }
+
+        .class-progress-bar-container {
+            height: 40px;
+            background: rgba(0,0,0,0.8);
+            border-top: 1px solid rgba(0, 242, 255, 0.2);
+            position: relative;
+            padding: 5px 10px;
+            box-sizing: border-box;
+        }
+        
+        .class-progress-text {
+            font-size: 10px;
+            color: #bbb;
+            margin-bottom: 2px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .class-progress-bg {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .class-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+            width: 0%;
+            transition: width 0.5s ease-out;
+            box-shadow: 0 0 10px var(--success-color);
+        }
+
+        /* 狂热模式背景特效 */
+        body.frenzy-mode .star-layer {
+            animation-duration: 20s !important;
+        }
+        body.frenzy-mode {
+            box-shadow: inset 0 0 50px rgba(255, 45, 85, 0.3);
+        }
+
+        /* 巨大连击文本 */
+        .giant-combo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 120px;
+            font-weight: 900;
+            color: #fff;
+            pointer-events: none;
+            z-index: 60;
+            opacity: 1;
+            animation: popFade 0.8s ease-out forwards;
+        }
+
+        @keyframes popFade {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+        }
+
+        /* 超越横幅 */
+        .overtake-banner {
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: linear-gradient(90deg, transparent, rgba(0,242,255,0.8), transparent);
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 10px 100px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        /* 追赶提示 HUD */
+        .chase-hud {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            border-radius: 20px;
+            padding: 5px 20px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            z-index: 50;
+            display: none;
+            transition: all 0.3s;
+        }
+
+        .chase-hud span.target-name { color: #ff2d55; }
+        .chase-hud span.target-diff { color: var(--accent-color); font-size: 16px; margin: 0 5px; }
+
+        /* 暂停观战遮罩层 */
+        .pause-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px) brightness(0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 35; /* 低于 Sidebar 和 PlayerInfo */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        .pause-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .pause-text {
+            font-size: 48px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(0,242,255,1);
+            margin-bottom: 20px;
+        }
+
+        .pause-subtext {
+            font-size: 20px;
+            color: #ddd;
+            letter-spacing: 2px;
+        }
+
+        /* 被超越抖动动画 */
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(5px); }
+            50% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
+        .shake {
+            animation: shake 0.4s ease-in-out;
+            background: rgba(255,45,85,0.2) !important;
+            border-color: #ff2d55 !important;
+        }
+
+        /* 自己行高亮 */
+        .lb-item.is-me {
+            border: 2px solid var(--accent-color);
+            box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+        .lb-best-rank {
+            font-size: 10px;
+            color: #888;
+            margin-left: 5px;
+            font-weight: normal;
+        }
+
+        /* 成就字典面板 */
+        .idiom-review-panel {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            text-align: left;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 15px;
+        }
+        .idiom-item {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-color);
+        }
+        .idiom-phrase { font-size: 18px; color: #fff; font-weight: bold; }
+        .idiom-meaning { font-size: 12px; color: #bbb; margin-top: 4px; }
+
+        /* 防御城墙 (Defensive Wall) */
+        .city-wall {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            background: 
+                linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 242, 255, 0.1) 100%),
+                repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0, 242, 255, 0.2) 40px, rgba(0, 242, 255, 0.2) 42px);
+            border-top: 3px dashed var(--accent-color);
+            box-shadow: 0 -10px 30px rgba(0, 242, 255, 0.2);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: 10px;
+            pointer-events: none;
+        }
+        .laser-tower {
+            position: absolute;
+            bottom: 0px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 100px;
+            background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg"><polygon points="30,120 70,120 60,40 40,40" fill="%23223344" stroke="%2300f2ff" stroke-width="2"/><circle cx="50" cy="30" r="15" fill="%2305070a" stroke="%23ff2d55" stroke-width="3"/><circle cx="50" cy="30" r="5" fill="%23ff2d55"><animate attributeName="opacity" values="1;0.2;1" dur="1s" repeatCount="indefinite"/></circle><path d="M45,100 L55,100 M45,80 L55,80 M45,60 L55,60" stroke="%2300f2ff" stroke-width="3"/></svg>') no-repeat center bottom;
+            background-size: contain;
+            z-index: 20;
+            pointer-events: none;
+        }
+        .laser-tower.firing {
+            filter: drop-shadow(0 0 20px var(--accent-color));
+        }
+
+        .planet-name {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            bottom: -25px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+
+        .city-wall-text {
+            color: var(--accent-color);
+            font-size: 14px;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--accent-color);
+            opacity: 0.6;
+            font-weight: bold;
+        }
+        .energy-bars {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .energy-bar {
+            width: 80px;
+            height: 12px;
+            background: rgba(0, 242, 255, 0.3);
+            border: 2px solid var(--accent-color);
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+            transition: all 0.3s;
+        }
+        .energy-bar.depleted {
+            background: rgba(255, 45, 85, 0.2);
+            border-color: var(--danger-color);
+            box-shadow: 0 0 5px rgba(255, 45, 85, 0.3);
+        }
+        .screen-clear-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, rgba(0, 242, 255, 0.9) 0%, rgba(0, 242, 255, 0.3) 50%, transparent 100%);
+            pointer-events: none;
+            z-index: 999;
+            animation: waveUp 0.6s ease-out;
+        }
+        @keyframes waveUp {
+            0% {
+                clip-path: inset(100% 0 0 0);
+                opacity: 1;
+            }
+            70% {
+                clip-path: inset(0 0 0 0);
+                opacity: 1;
+            }
+            100% {
+                clip-path: inset(0 0 0 0);
+                opacity: 0;
+            }
+        }
+        .frenzy-mode .city-wall {
+            border-top-color: #ff2d55;
+            box-shadow: 0 -10px 30px rgba(255, 45, 85, 0.3);
+            background: 
+                linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(255, 45, 85, 0.1) 100%),
+                repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255, 45, 85, 0.2) 40px, rgba(255, 45, 85, 0.2) 42px);
+        }
+        .frenzy-mode .city-wall-text {
+            color: #ff2d55;
+            text-shadow: 0 0 10px #ff2d55;
+        }
+
+        .hit-wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(to top, rgba(255, 45, 85, 0.8) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 999;
+            animation: hitWaveAnim 0.6s ease-out forwards;
+        }
+        @keyframes hitWaveAnim {
+            0% { transform: scaleY(0); transform-origin: bottom; opacity: 1; }
+            50% { transform: scaleY(3); transform-origin: bottom; opacity: 0.8; }
+            100% { transform: scaleY(5); transform-origin: bottom; opacity: 0; }
+        }
+
+        @keyframes wallHitFlash {
+            0% { background: rgba(255, 45, 85, 0.4); border-top-color: #ff2d55; box-shadow: 0 -10px 50px #ff2d55; }
+            100% { background: transparent; border-top-color: var(--accent-color); box-shadow: 0 -10px 30px rgba(0, 242, 255, 0.2); }
+        }
+        .wall-hit-flash {
+            animation: wallHitFlash 0.5s ease-out;
+        }
+
+        .planet {
+            position: absolute;
+            z-index: -1;
+            opacity: 0.7;
+            will-change: transform;
+            pointer-events: none;
+        }
+
+        canvas#laserCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="stars-container">
+        <div class="star-layer layer-1"></div>
+        <div class="star-layer layer-2"></div>
+        <div id="planetContainer"></div>
+    </div>
+    <canvas id="laserCanvas"></canvas>
+
+    <div class="game-header">
+        <div class="header-left">
+            <a href="#" onclick="confirmExit(); return false;" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">[ 退出 ]</a>
+            <button id="muteBtn" class="mute-btn" onclick="audio.toggleMute()">音效: 开启</button>
+        </div>
+        <div class="stat-group">
+            <div class="stat-item">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value" id="score">000000</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">ACCURACY</div>
+                <div class="stat-value" id="accuracy">100%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">SPEED</div>
+                <div class="stat-value" id="wpm">0 WPM</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameArea">
+        <div id="startOverlay" class="ui-overlay">
+            <div class="menu-card">
+                <h1 class="menu-title">键盘基础练习</h1>
+                <p style="color: #666; font-size: 14px; letter-spacing: 2px;">纯享打字版</p>
+                <div style="margin: 40px 0 20px 0; color: #888;">
+                    <p>不用切换输入法，直接敲击字母消灭敌人！</p>
+                    <p>高连击触发全屏烟花火力打击</p>
+                </div>
+                <div class="difficulty-selector">
+                    <label>
+                        <input type="radio" name="difficulty" value="0.25">
+                        <span>极慢 (积分 x0.25)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="difficulty" value="0.5">
+                        <span>慢速 (积分 x0.5)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="difficulty" value="0.75">
+                        <span>中速 (积分 x0.75)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="difficulty" value="1.0" checked>
+                        <span>快速 (积分 x1.0)</span>
+                    </label>
+                </div>
+                <button class="btn-start" onclick="game.start()">准备起飞</button>
+            </div>
+        </div>
+        <div id="gameOverOverlay" class="ui-overlay" style="display: none;">
+            <div class="menu-card" style="width: 500px;">
+                <h1 class="menu-title" style="color: var(--danger-color);">任务终止</h1>
+                <p style="color: #888; font-size: 24px; margin: 20px 0;">本次生命得分: <span id="finalScore"
+                        style="color: var(--accent-color);">0</span></p>
+                <div id="idiomReviewWrapper" class="idiom-review-panel"></div>
+                <p style="color: #666; font-size: 14px; margin: 20px 0;">排行榜已清零，请重新挑战！</p>
+                <button class="btn-start" onclick="game.restart()">再次起飞</button>
+            </div>
+        </div>
+        
+        <div class="pause-overlay" id="pauseOverlay">
+            <div class="pause-text">暂停观战中</div>
+            <div class="pause-subtext">大家都在奋起直追，按 ESC 立刻回归战场！</div>
+        </div>
+
+        <div class="chase-hud" id="chaseHud">距离第 <span id="chaseRank"></span> 名 <span class="target-name" id="chaseName">XXX</span> 还差 <span class="target-diff" id="chaseDiff">0</span> 分</div>
+
+        <!-- 底部星际长城 (防线) -->
+        <div class="city-wall" id="cityWall">
+            <div class="city-wall-text">/// 星际防线 ///</div>
+            <div class="energy-bars">
+                <div class="energy-bar" id="energy1"></div>
+                <div class="energy-bar" id="energy2"></div>
+                <div class="energy-bar" id="energy3"></div>
+            </div>
+            <div class="laser-tower" id="laserTower"></div>
+        </div>
+
+        <div class="player-info" id="playerInfoUI" style="display:none;">
+            <div class="player-name" id="uiPlayerName">访客</div>
+            <div style="font-size:12px; color:#888;">驾驶员</div>
+        </div>
+
+        <div class="sidebar-right" id="leaderboardSidebar" style="display:none;">
+            <div class="sidebar-title">实时英雄榜</div>
+            <ul class="leaderboard-list" id="lbList"></ul>
+            <div class="class-progress-bar-container">
+                <div class="class-progress-text">
+                    <span>全班星际总目标</span>
+                    <span id="cpText">0 / 10000</span>
+                </div>
+                <div class="class-progress-bg">
+                    <div class="class-progress-fill" id="cpFill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="overtake-banner" id="overtakeBanner">太棒了！你刚刚超过了 xxx！</div>
+        
+        <div class="combo-text" id="comboText">X 0</div>
+    </div>
+
+    <!-- SOCKET.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        if (typeof io === 'undefined') {
+            document.write('<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"><\\/script>');
+        }
+    </script>
+    <script src="js/api.js"></script>
+    <script>
+        class MusicEngine {
+            constructor() {
+                this.ctx = null;
+                this.isPlaying = false;
+                this.currentStep = 0;
+                this.nextNoteTime = 0;
+                this.tempo = 130;
+                this.lookahead = 25.0;
+                this.scheduleAheadTime = 0.1;
+                this.timerID = null;
+                
+                // 16-step patterns
+                this.kickPattern = [1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0];
+                this.bassPattern = [
+                    41.20, 0, 41.20, 41.20, 
+                    49.00, 0, 55.00, 0,
+                    41.20, 0, 41.20, 0,
+                    61.74, 55.00, 49.00, 0
+                ];
+            }
+
+            init() {
+                if (!this.ctx) {
+                    try {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch (e) { console.warn("AudioContext not supported"); }
+                }
+            }
+
+            playKick(time) {
+                if(audio.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+                gain.gain.setValueAtTime(0.2, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
+
+                osc.start(time);
+                osc.stop(time + 0.5);
+            }
+
+            playBass(freq, time) {
+                if(audio.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.frequency.setValueAtTime(freq, time);
+                gain.gain.setValueAtTime(0.05, time);
+                gain.gain.setTargetAtTime(0, time, 0.1);
+
+                osc.start(time);
+                osc.stop(time + 0.2);
+            }
+
+            nextNote() {
+                const secondsPerBeat = 60.0 / this.tempo;
+                this.nextNoteTime += 0.25 * secondsPerBeat;
+                this.currentStep++;
+                if (this.currentStep === 16) {
+                    this.currentStep = 0;
+                }
+            }
+
+            scheduleNote(stepNumber, time) {
+                if (this.kickPattern[stepNumber]) this.playKick(time);
+                if (this.bassPattern[stepNumber]) this.playBass(this.bassPattern[stepNumber], time);
+            }
+
+            scheduler() {
+                while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+                    this.scheduleNote(this.currentStep, this.nextNoteTime);
+                    this.nextNote();
+                }
+                this.timerID = setTimeout(() => this.scheduler(), this.lookahead);
+            }
+
+            start() {
+                if (this.isPlaying) return;
+                this.init();
+                if (!this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                this.isPlaying = true;
+                this.currentStep = 0;
+                this.nextNoteTime = this.ctx.currentTime + 0.05;
+                this.scheduler();
+            }
+
+            stop() {
+                this.isPlaying = false;
+                clearTimeout(this.timerID);
+            }
+        }
+
+        const musicEngine = new MusicEngine();
+
+        // 音效引擎
+        const audio = {
+            ctx: null,
+            muted: localStorage.getItem('game_muted') === 'true',
+            init() {
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) { console.warn("AudioContext not supported"); }
+                this.updateMuteBtn();
+            },
+            playKey(combo = 0) {
+                if (this.muted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                
+                // 根据连击数提高音调
+                const baseFreq = 880;
+                const pitchShift = Math.min(combo * 40, 800); // 封顶
+                osc.frequency.setValueAtTime(baseFreq + pitchShift, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.1);
+            },
+            playHeavyExplosion() {
+                if (this.muted || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.4; // 更长
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400; // 更沉闷
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(1.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5); // 更长的衰减
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            },
+            playHit() {
+                this.playHeavyExplosion();
+            },
+            playExplosion() {
+                if (this.muted || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.2;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 1000;
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            },
+            playHeavyExplosion() {
+                if (this.muted || !this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * 0.4; // 更长
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400; // 更沉闷
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(1.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5); // 更长的衰减
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            },
+            playFirework() {
+                 if (this.muted || !this.ctx) return;
+                 // 类似爆炸但是更长的扫频
+                 const osc = this.ctx.createOscillator();
+                 const gain = this.ctx.createGain();
+                 osc.type = 'triangle';
+                 osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                 osc.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + 0.5);
+                 gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                 gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                 osc.connect(gain);
+                 gain.connect(this.ctx.destination);
+                 osc.start();
+                 osc.stop(this.ctx.currentTime + 0.5);
+            },
+            playGameOver() {
+                 if (this.muted || !this.ctx) return;
+                 const osc = this.ctx.createOscillator();
+                 const gain = this.ctx.createGain();
+                 osc.type = 'sawtooth';
+                 osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                 osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 1.5);
+                 gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                 gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.5);
+                 osc.connect(gain);
+                 gain.connect(this.ctx.destination);
+                 osc.start();
+                 osc.stop(this.ctx.currentTime + 1.5);
+            },
+            playOvertake() {
+                if (this.muted || !this.ctx) return;
+                // 类似超级玛丽金币的向上琶音
+                const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, t); // B5
+                osc.frequency.setValueAtTime(1318.51, t + 0.1); // E6
+                
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.5, t + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.5);
+            },
+            toggleMute() {
+                this.muted = !this.muted;
+                localStorage.setItem('game_muted', this.muted);
+                this.updateMuteBtn();
+            },
+            updateMuteBtn() {
+                const btn = document.getElementById('muteBtn');
+                btn.innerHTML = `音效: ${this.muted ? '关闭' : '开启'}`;
+                btn.className = `mute-btn ${this.muted ? 'muted' : ''}`;
+            }
+        };
+
+        // 网络同步引擎
+        const netEngine = {
+            socket: null,
+            myId: null,
+            myName: '访客',
+            lastRank: null,
+            init() {
+                try {
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    if (studentInfo.id && studentInfo.name) {
+                        this.myId = studentInfo.id;
+                        this.myName = studentInfo.name;
+                    } else {
+                        this.myId = 'guest_' + Math.floor(Math.random()*10000);
+                    }
+                    
+                    document.getElementById('uiPlayerName').innerText = this.myName;
+                    document.getElementById('playerInfoUI').style.display = 'block';
+                    document.getElementById('leaderboardSidebar').style.display = 'flex';
+
+                    // 预先渲染自己
+                    this.renderLeaderboard([{ username: this.myName, score: 0, wpm: 0, bestRank: null }]);
+
+                    if (typeof io !== 'undefined') {
+                        this.socket = io();
+                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+
+                        this.socket.on('leaderboard_update', (list) => {
+                            if (list && list.length > 0) this.renderLeaderboard(list);
+                        });
+                        this.socket.on('class_progress_update', (data) => this.updateClassProgress(data));
+                    }
+                } catch(e) {
+                    console.warn("Socket.io initialization skipped or failed", e);
+                }
+            },
+            updateScore(score, wpm) {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('update_score', { score, wpm });
+                } else {
+                    // 离线模式：仅更新自己的分数
+                    this.renderLeaderboard([{ username: this.myName, score, wpm }]);
+                }
+            },
+            resetScore() {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('reset_score');
+                }
+                this.lastRank = null;
+                document.getElementById('chaseHud').style.display = 'none';
+            },
+            renderLeaderboard(list) {
+                const ul = document.getElementById('lbList');
+                const ITEM_HEIGHT = 45; 
+                
+                // 使用节流：只有数据显著变化时才更新 DOM
+                if (this._lastLeaderboardData) {
+                    const oldData = this._lastLeaderboardData;
+                    const isSameLength = list.length === oldData.length;
+                    const hasSignificantChange = isSameLength && list.some((p, i) => 
+                        p.score !== oldData[i]?.score || p.username !== oldData[i]?.username
+                    );
+                    if (!hasSignificantChange) return;
+                }
+                this._lastLeaderboardData = list;
+                
+                // Track current rank for surpass notifications
+                let myCurrentRank = -1;
+                let myScore = 0;
+
+                // 优化：使用 Map 缓存 DOM 元素，减少查找时间
+                const existingItems = new Map();
+                Array.from(ul.children).forEach(li => {
+                    existingItems.set(li.dataset.name, li);
+                });
+
+                list.forEach((p, idx) => {
+                    const currentRank = idx + 1;
+                    const isMe = p.username === this.myName;
+                    
+                    if (isMe) {
+                        myCurrentRank = currentRank;
+                        myScore = p.score;
+
+                        const playerCount = list.length;
+                        if (playerCount >= 5) {
+                            if (!this.rankTracker[currentRank]) {
+                                this.rankTracker[currentRank] = Date.now();
+                            }
+                            const duration = (Date.now() - this.rankTracker[currentRank]) / 1000;
+                            if (duration >= 20) {
+                                if (!this.myBestRank || currentRank < this.myBestRank) {
+                                    this.myBestRank = currentRank;
+                                }
+                            }
+                        } else {
+                            this.rankTracker = {};
+                        }
+
+                        if (currentRank === 1) {
+                            this.reachedFirstPlace = true;
+                        }
+                    }
+                    
+                    // 从 Map 中获取或创建新元素
+                    let li = existingItems.get(p.username);
+                    if (!li) {
+                        li = document.createElement('li');
+                        li.className = 'lb-item';
+                        li.dataset.name = p.username;
+                        li.innerHTML = `
+                            <span class="lb-rank"></span>
+                            <span class="lb-name"></span>
+                            <span class="lb-score"></span>
+                        `;
+                        ul.appendChild(li);
+                    } else {
+                        existingItems.delete(p.username); // 标记为已使用
+                    }
+                    
+                    // Update content - 只更新实际变化的内容
+                    li.querySelector('.lb-rank').innerText = currentRank;
+                    li.querySelector('.lb-score').innerText = p.score;
+                    
+                    // 名字和 Session High
+                    let nameHtml = p.username;
+                    if (p.bestRank) {
+                        nameHtml += `<span class="lb-best-rank">(Best: #${p.bestRank})</span>`;
+                    }
+                    li.querySelector('.lb-name').innerHTML = nameHtml;
+                    
+                    // Smooth Transition to new position
+                    li.style.transform = `translateY(${idx * ITEM_HEIGHT}px)`;
+                    
+                    // Styling
+                    li.classList.remove('rank-1', 'rank-2', 'rank-3', 'is-me', 'shake');
+                    if (currentRank === 1) li.classList.add('rank-1');
+                    if (currentRank === 2) li.classList.add('rank-2');
+                    if (currentRank === 3) li.classList.add('rank-3');
+                    if (isMe) li.classList.add('is-me');
+                });
+
+                // 移除断开的玩家 - 只需要移除未使用的元素
+                existingItems.forEach(li => li.remove());
+
+                // Chase UI Logic
+                const chaseHud = document.getElementById('chaseHud');
+                if (myCurrentRank > 1 && game.isRunning) {
+                    const target = list[myCurrentRank - 2]; // The person right above me
+                    const diff = target.score - myScore;
+                    chaseHud.innerHTML = `距离第 <span id="chaseRank">${myCurrentRank - 1}</span> 名 <span class="target-name" id="chaseName">${target.username}</span> 还差 <span class="target-diff" id="chaseDiff">${diff}</span> 分`;
+                    chaseHud.style.display = 'block';
+                } else if (myCurrentRank === 1 && game.isRunning) {
+                    chaseHud.innerHTML = `你是第一名！继续保持！`;
+                    chaseHud.style.display = 'block';
+                } else {
+                    chaseHud.style.display = 'none';
+                }
+
+                // Overtake Logic (I overtook someone OR I was overtaken)
+                if (this.lastRank !== null && myCurrentRank !== -1) {
+                    if (myCurrentRank < this.lastRank) {
+                        // Risen!
+                        const surpassed = list[myCurrentRank] ? list[myCurrentRank].username : '前一名玩家';
+                        this.showOvertake(surpassed);
+                        audio.playOvertake();
+                        if(game.triggerIdiom) game.triggerIdiom('逆袭类');
+                    } else if (myCurrentRank > this.lastRank) {
+                        // Dropped!
+                        const myLi = Array.from(ul.children).find(el => el.dataset.name === this.myName);
+                        if (myLi) {
+                            myLi.classList.add('shake');
+                            setTimeout(() => myLi.classList.remove('shake'), 400);
+                        }
+                    }
+                }
+                if (myCurrentRank !== -1) {
+                    this.lastRank = myCurrentRank;
+                }
+            },
+            updateClassProgress(data) {
+                const percent = Math.min(100, (data.current / data.target) * 100);
+                document.getElementById('cpFill').style.width = percent + '%';
+                document.getElementById('cpText').innerText = `${data.current} / ${data.target}`;
+                
+                if (percent >= 100 && !this.confettiTriggered) {
+                    this.confettiTriggered = true;
+                    // Trigger massive full screen effect
+                    for(let i=0; i<30; i++) {
+                        setTimeout(() => createFirework(window.innerWidth * Math.random(), window.innerHeight * Math.random()), i*100);
+                    }
+                }
+            },
+            showOvertake(name) {
+                const banner = document.getElementById('overtakeBanner');
+                banner.innerText = `太棒了！你刚刚超过了 ${name}！`;
+                banner.classList.add('show');
+                setTimeout(() => banner.classList.remove('show'), 2000);
+            }
+        };
+
+        // 激光绘制
+        const laserCanvas = document.getElementById('laserCanvas');
+        const laserCtx = laserCanvas.getContext('2d');
+        function resizeLaser() { laserCanvas.width = window.innerWidth; laserCanvas.height = window.innerHeight; }
+        resizeLaser(); window.addEventListener('resize', resizeLaser);
+
+        function fireLaser(x, y) {
+            let opacity = 1;
+            const draw = () => {
+                laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                laserCtx.beginPath();
+                laserCtx.strokeStyle = `rgba(0, 242, 255, ${opacity})`;
+                laserCtx.lineWidth = 3;
+                laserCtx.moveTo(laserCanvas.width / 2, laserCanvas.height);
+                laserCtx.lineTo(x, y);
+                laserCtx.stroke();
+                
+                // 核心白光
+                laserCtx.beginPath();
+                laserCtx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                laserCtx.lineWidth = 1;
+                laserCtx.moveTo(laserCanvas.width / 2, laserCanvas.height);
+                laserCtx.lineTo(x, y);
+                laserCtx.stroke();
+
+                const tower = document.getElementById('laserTower');
+                if (tower) tower.classList.add('firing');
+
+                opacity -= 0.15;
+                if (opacity > 0) {
+                    requestAnimationFrame(draw);
+                } else {
+                    laserCtx.clearRect(0, 0, laserCanvas.width, laserCanvas.height);
+                    if (tower) tower.classList.remove('firing');
+                }
+            };
+            draw();
+        }
+
+        // 敌人设计
+        function createEnemySVG(color, scale = 1) {
+            const baseSize = 60, size = baseSize * scale, p = 8, ps = size / p;
+            let svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="enemy-svg" style="color: ${color}">`;
+            const grid = Array.from({ length: p }, () => Array.from({ length: p / 2 }, () => Math.random() > 0.4));
+            for (let i = 0; i < p; i++) {
+                for (let j = 0; j < p / 2; j++) {
+                    if (grid[i][j]) {
+                        svg += `<rect x="${j * ps}" y="${i * ps}" width="${ps}" height="${ps}" fill="currentColor" />`;
+                        svg += `<rect x="${(p - 1 - j) * ps}" y="${i * ps}" width="${ps}" height="${ps}" fill="currentColor" />`;
+                    }
+                }
+            }
+            return svg + `</svg>`;
+        }
+
+        function createParticles(x, y, color, count = 10, radius = 5, duration = 0.03) {
+            // 极限性能优化：大幅度限制全局粒子总数，极低配电脑救星
+            if (document.querySelectorAll('.particle').length > 15) return;
+            // 极限性能优化：单次最多释放 4 个粒子象征性表现一下
+            const actualCount = Math.min(count, 4);
+            
+            for (let i = 0; i < actualCount; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.background = color;
+                p.style.width = '6px';
+                p.style.height = '6px';
+                p.style.left = x + 'px'; p.style.top = y + 'px';
+                p.style.boxShadow = `0 0 10px ${color}`;
+                document.getElementById('gameArea').appendChild(p);
+                const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * radius;
+                const vx = Math.cos(angle) * speed, vy = Math.sin(angle) * speed;
+                let op = 1;
+                const anim = () => {
+                    p.style.left = (parseFloat(p.style.left) + vx) + 'px'; p.style.top = (parseFloat(p.style.top) + vy) + 'px';
+                    op -= (duration * 2); // 衰减加速，更快释放 DOM 节点
+                    p.style.opacity = op;
+                    if (op > 0) {
+                        requestAnimationFrame(anim);
+                    } else {
+                        p.remove();
+                    }
+                };
+                requestAnimationFrame(anim);
+            }
+        }
+
+        // 烟花特效 / 光晕特效 (替换了吃性能的 40 个碎片计算逻辑)
+        function createFirework(x, y) {
+            const fwColors = ['#ff0040', '#0040ff', '#00ff40', '#ffff00', '#ff00ff', '#00ffff'];
+            const color = fwColors[Math.floor(Math.random() * fwColors.length)];
+            
+            // 使用单一 div 的 CSS 缩放动画取代 JS 驱动的 40 个粒子，极大降低性能开销
+            const burst = document.createElement('div');
+            burst.className = 'light-burst';
+            burst.style.color = color;
+            burst.style.width = '40px';
+            burst.style.height = '40px';
+            burst.style.left = x + 'px';
+            burst.style.top = y + 'px';
+            document.getElementById('gameArea').appendChild(burst);
+
+            setTimeout(() => {
+                burst.remove();
+            }, 600);
+            
+            audio.playFirework();
+        }
+
+        // 纯英文/拼音字母字典 (只保留英文字母，无需切换输入法)
+        const dictionary = [
+            'space', 'rocket', 'pilot', 'galaxy', 'star', 'laser', 'orbit', 'void', 'cyber', 'core',
+            'apple', 'hero', 'jump', 'speed', 'power', 'magic', 'dream', 'world', 'light', 'dark',
+            'pingyin', 'xuexi', 'kuaile', 'dazi', 'gaoshou', 'jiluo', 'feichuan', 'zhandou',
+            // 2 字母拼音组合
+            'ba', 'bo', 'bi', 'bu', 'bai', 'bei', 'bao', 'ban', 'ben', 'bang', 'beng',
+            'pa', 'po', 'pi', 'pu', 'pai', 'pei', 'pao', 'pan', 'pen', 'pang', 'peng',
+            'ma', 'mo', 'mi', 'mu', 'mai', 'mei', 'miao', 'man', 'men', 'mang', 'meng',
+            'fa', 'fo', 'fu', 'fei', 'fou', 'fan', 'fen', 'fang', 'feng',
+            'da', 'de', 'di', 'du', 'dao', 'dou', 'dai', 'dei', 'dan', 'den', 'dang', 'deng',
+            'ta', 'te', 'ti', 'tu', 'tai', 'tou', 'tan', 'tang', 'teng',
+            'na', 'ne', 'ni', 'nu', 'nai', 'nei', 'nan', 'nen', 'nang', 'neng',
+            'la', 'le', 'li', 'lu', 'lai', 'lei', 'lan', 'leng',
+            'ga', 'ge', 'gu', 'gai', 'gei', 'gan', 'gen', 'gang', 'geng',
+            'ka', 'ke', 'ku', 'kai', 'kou', 'kan', 'ken', 'kang', 'kong',
+            'ha', 'he', 'hu', 'hai', 'hei', 'han', 'hen', 'hang', 'heng',
+            'zha', 'zhe', 'zhi', 'zhu', 'zhai', 'zhei', 'zhao', 'zhou', 'zhuan', 'zhun', 'zhuang',
+            'cha', 'che', 'chi', 'chu', 'chai', 'chou', 'chan', 'chen', 'chang', 'cheng',
+            'sha', 'she', 'shi', 'shu', 'shai', 'shou', 'shan', 'shen', 'shang', 'sheng',
+            'ra', 're', 'ri', 'ru', 'ran', 'ren', 'rang', 'reng',
+            'za', 'ze', 'zi', 'zu', 'zai', 'zei', 'zan', 'zen', 'zang', 'zeng',
+            'ca', 'ce', 'ci', 'cu', 'cai', 'cou', 'can', 'cen', 'cang', 'ceng',
+            'sa', 'se', 'si', 'su', 'sai', 'sou', 'san', 'sen', 'sang', 'seng',
+            'ya', 'ye', 'yi', 'yu', 'yai', 'yao', 'you', 'yan', 'yin', 'yang', 'ying',
+            'wa', 'wo', 'wai', 'wei', 'wan', 'wen', 'wang', 'weng',
+            'wa', 'wo', 'wu', 'wai', 'wei', 'wan', 'wen', 'wang', 'weng',
+            // 2 字母英文组合 (常见 bigrams)
+            'aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag', 'ah', 'ai', 'aj', 'ak', 'al', 'am', 'an', 'ao', 'ap', 'aq', 'ar', 'as', 'at', 'au', 'av', 'aw', 'ax', 'ay', 'az',
+            'ba', 'bb', 'bc', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bk', 'bl', 'bm', 'bn', 'bo', 'bp', 'bq', 'br', 'bs', 'bt', 'bu', 'bv', 'bw', 'bx', 'by', 'bz',
+            'ca', 'cb', 'cc', 'cd', 'ce', 'cf', 'cg', 'ch', 'ci', 'cj', 'ck', 'cl', 'cm', 'cn', 'co', 'cp', 'cq', 'cr', 'cs', 'ct', 'cu', 'cv', 'cw', 'cx', 'cy', 'cz',
+            'da', 'db', 'dc', 'dd', 'de', 'df', 'dg', 'dh', 'di', 'dj', 'dk', 'dl', 'dm', 'dn', 'do', 'dp', 'dq', 'dr', 'ds', 'dt', 'du', 'dv', 'dw', 'dx', 'dy', 'dz',
+            'ea', 'eb', 'ec', 'ed', 'ee', 'ef', 'eg', 'eh', 'ei', 'ej', 'ek', 'el', 'em', 'en', 'eo', 'ep', 'eq', 'er', 'es', 'et', 'eu', 'ev', 'ew', 'ex', 'ey', 'ez',
+            'fa', 'fb', 'fc', 'fd', 'fe', 'ff', 'fg', 'fh', 'fi', 'fj', 'fk', 'fl', 'fm', 'fn', 'fo', 'fp', 'fq', 'fr', 'fs', 'ft', 'fu', 'fv', 'fw', 'fx', 'fy', 'fz',
+            'ga', 'gb', 'gc', 'gd', 'ge', 'gf', 'gg', 'gh', 'gi', 'gj', 'gk', 'gl', 'gm', 'gn', 'go', 'gp', 'gq', 'gr', 'gs', 'gt', 'gu', 'gv', 'gw', 'gx', 'gy', 'gz',
+            'ha', 'hb', 'hc', 'hd', 'he', 'hf', 'hg', 'hh', 'hi', 'hj', 'hk', 'hl', 'hm', 'hn', 'ho', 'hp', 'hq', 'hr', 'hs', 'ht', 'hu', 'hv', 'hw', 'hx', 'hy', 'hz',
+            'ia', 'ib', 'ic', 'id', 'ie', 'if', 'ig', 'ih', 'ii', 'ij', 'ik', 'il', 'im', 'in', 'io', 'ip', 'iq', 'ir', 'is', 'it', 'iu', 'iv', 'iw', 'ix', 'iy', 'iz',
+            'ja', 'jb', 'jc', 'jd', 'je', 'jf', 'jg', 'jh', 'ji', 'jj', 'jk', 'jl', 'jm', 'jn', 'jo', 'jp', 'jq', 'jr', 'js', 'jt', 'ju', 'jv', 'jw', 'jx', 'jy', 'jz',
+            'ka', 'kb', 'kc', 'kd', 'ke', 'kf', 'kg', 'kh', 'ki', 'kj', 'kk', 'kl', 'km', 'kn', 'ko', 'kp', 'kq', 'kr', 'ks', 'kt', 'ku', 'kv', 'kw', 'kx', 'ky', 'kz',
+            'la', 'lb', 'lc', 'ld', 'le', 'lf', 'lg', 'lh', 'li', 'lj', 'lk', 'll', 'lm', 'ln', 'lo', 'lp', 'lq', 'lr', 'ls', 'lt', 'lu', 'lv', 'lw', 'lx', 'ly', 'lz',
+            'ma', 'mb', 'mc', 'md', 'me', 'mf', 'mg', 'mh', 'mi', 'mj', 'mk', 'ml', 'mm', 'mn', 'mo', 'mp', 'mq', 'mr', 'ms', 'mt', 'mu', 'mv', 'mw', 'mx', 'my', 'mz',
+            'na', 'nb', 'nc', 'nd', 'ne', 'nf', 'ng', 'nh', 'ni', 'nj', 'nk', 'nl', 'nm', 'nn', 'no', 'np', 'nq', 'nr', 'ns', 'nt', 'nu', 'nv', 'nw', 'nx', 'ny', 'nz',
+            'oa', 'ob', 'oc', 'od', 'oe', 'of', 'og', 'oh', 'oi', 'oj', 'ok', 'ol', 'om', 'on', 'oo', 'op', 'oq', 'or', 'os', 'ot', 'ou', 'ov', 'ow', 'ox', 'oy', 'oz',
+            'pa', 'pb', 'pc', 'pd', 'pe', 'pf', 'pg', 'ph', 'pi', 'pj', 'pk', 'pl', 'pm', 'pn', 'po', 'pp', 'pq', 'pr', 'ps', 'pt', 'pu', 'pv', 'pw', 'px', 'py', 'pz',
+            'qa', 'qb', 'qc', 'qd', 'qe', 'qf', 'qg', 'qh', 'qi', 'qj', 'qk', 'ql', 'qm', 'qn', 'qo', 'qp', 'qq', 'qr', 'qs', 'qt', 'qu', 'qv', 'qw', 'qx', 'qy', 'qz',
+            'ra', 'rb', 'rc', 'rd', 're', 'rf', 'rg', 'rh', 'ri', 'rj', 'rk', 'rl', 'rm', 'rn', 'ro', 'rp', 'rq', 'rr', 'rs', 'rt', 'ru', 'rv', 'rw', 'rx', 'ry', 'rz',
+            'sa', 'sb', 'sc', 'sd', 'se', 'sf', 'sg', 'sh', 'si', 'sj', 'sk', 'sl', 'sm', 'sn', 'so', 'sp', 'sq', 'sr', 'ss', 'st', 'su', 'sv', 'sw', 'sx', 'sy', 'sz',
+            'ta', 'tb', 'tc', 'td', 'te', 'tf', 'tg', 'th', 'ti', 'tj', 'tk', 'tl', 'tm', 'tn', 'to', 'tp', 'tq', 'tr', 'ts', 'tt', 'tu', 'tv', 'tw', 'tx', 'ty', 'tz',
+            'ua', 'ub', 'uc', 'ud', 'ue', 'uf', 'ug', 'uh', 'ui', 'uj', 'uk', 'ul', 'um', 'un', 'uo', 'up', 'uq', 'ur', 'us', 'ut', 'uu', 'uv', 'uw', 'ux', 'uy', 'uz',
+            'va', 'vb', 'vc', 'vd', 've', 'vf', 'vg', 'vh', 'vi', 'vj', 'vk', 'vl', 'vm', 'vn', 'vo', 'vp', 'vq', 'vr', 'vs', 'vt', 'vu', 'vv', 'vw', 'vx', 'vy', 'vz',
+            'wa', 'wb', 'wc', 'wd', 'we', 'wf', 'wg', 'wh', 'wi', 'wj', 'wk', 'wl', 'wm', 'wn', 'wo', 'wp', 'wq', 'wr', 'ws', 'wt', 'wu', 'wv', 'ww', 'wx', 'wy', 'wz',
+            'xa', 'xb', 'xc', 'xd', 'xe', 'xf', 'xg', 'xh', 'xi', 'xj', 'xk', 'xl', 'xm', 'xn', 'xo', 'xp', 'xq', 'xr', 'xs', 'xt', 'xu', 'xv', 'xw', 'xx', 'xy', 'xz',
+            'ya', 'yb', 'yc', 'yd', 'ye', 'yf', 'yg', 'yh', 'yi', 'yj', 'yk', 'yl', 'ym', 'yn', 'yo', 'yp', 'yq', 'yr', 'ys', 'yt', 'yu', 'yv', 'yw', 'yx', 'yy', 'yz',
+            'za', 'zb', 'zc', 'zd', 'ze', 'zf', 'zg', 'zh', 'zi', 'zj', 'zk', 'zl', 'zm', 'zn', 'zo', 'zp', 'zq', 'zr', 'zs', 'zt', 'zu', 'zv', 'zw', 'zx', 'zy', 'zz'
+        ];
+        
+        // 成语激励系统 (Literary Achievement System)
+        const idiomDB = {
+            '速度类': [
+                { word: '健步如飞', meaning: '形容步伐快，像飞一样。' },
+                { word: '电闪雷鸣', meaning: '比喻快速猛烈，如同打闪劈雷。' },
+                { word: '快如闪电', meaning: '形容速度极快，像闪电一样。' },
+                { word: '风驰电掣', meaning: '形容非常迅速，像风吹电闪一样。' },
+                { word: '一日千里', meaning: '比喻速度极快。' }
+            ],
+            '精准类': [
+                { word: '百发百中', meaning: '形容射击或打靶非常准确，每次都命中。' },
+                { word: '无懈可击', meaning: '毫无漏洞，让人无法攻打。' },
+                { word: '滴水不漏', meaning: '形容说话办事非常周到、严密。' },
+                { word: '运筹帷幄', meaning: '在后方决定作战策略，比喻沉稳准确。' },
+                { word: '炉火纯青', meaning: '比喻技术或学问达到成熟、完美的境界。' }
+            ],
+            '连击类': [
+                { word: '连绵不断', meaning: '连续不断，一直延伸。' },
+                { word: '排山倒海', meaning: '形容力量强，声势大。' },
+                { word: '气吞山河', meaning: '气势宏大，可以吞噬山河。' },
+                { word: '势如破竹', meaning: '比喻节节胜利，毫无阻碍。' },
+                { word: '一鼓作气', meaning: '比喻趁劲头大的时候一下子把事情完成。' }
+            ],
+            '逆袭类': [
+                { word: '后来居上', meaning: '指后来的超过先前的。' },
+                { word: '东山再起', meaning: '指退隐后再次出任要职，也比喻失势后重新恢复地位。' },
+                { word: '一鸣惊人', meaning: '比喻平时没有突出的表现，一下子做出惊人的成绩。' },
+                { word: '反败为胜', meaning: '扭转败局，变为胜利。' },
+                { word: '绝地反击', meaning: '在极端被动的境地做出反扑。' }
+            ],
+            '首击类': [
+                { word: '先发制人', meaning: '先下手取得主动。' },
+                { word: '一马当先', meaning: '作战时策马冲锋在前。形容领先。' },
+                { word: '捷足先登', meaning: '比喻行动快的人先达到目的。' },
+                { word: '眼疾手快', meaning: '形容做事机警敏捷。' }
+            ],
+            '纠错类': [
+                { word: '亡羊补牢', meaning: '比喻出了问题以后想办法补救，可以防止继续受损失。' },
+                { word: '知错能改', meaning: '知道错了就能够改正。' },
+                { word: '悬崖勒马', meaning: '比喻到了危险的边缘及时清醒回头。' },
+                { word: '力挽狂澜', meaning: '比喻尽力挽回危险的局势。' }
+            ]
+        };
+        const allIdiomCategories = Object.keys(idiomDB);
+
+        const colors = ['#00f2ff', '#ff2d55', '#00ff88', '#fff', '#ff9f00', '#bf00ff'];
+
+        const game = {
+            score: 0, combo: 0, maxCombo: 0, totalChars: 0, correctChars: 0, startTime: null, enemies: [], lockedEnemy: null, isRunning: false, isPaused: false, speed: 0.8, difficultyFactor: 1.0, isFrenzy: false, lastScoreUpdate: 0,
+            triggeredIdioms: [], maxWPM: 0, hasTriggeredFirstStrike: false, hasTriggeredRecovery: false, shields: 3, isShowingIdiom: false, myBestRank: null, reachedFirstPlace: false, rankTracker: {},
+            start() {
+                // 读取难度设置
+                const diffRadio = document.querySelector('input[name="difficulty"]:checked');
+                this.difficultyFactor = diffRadio ? parseFloat(diffRadio.value) : 1.0;
+
+                audio.init(); document.getElementById('startOverlay').style.display = 'none';
+                musicEngine.start();
+                netEngine.init(); // Initialize socket connection
+
+                this.triggeredIdioms = [];
+                this.maxWPM = 0;
+                this.maxCombo = 0;
+                this.myBestRank = null;
+                this.reachedFirstPlace = false;
+                this.rankTracker = {};
+                this.hasTriggeredFirstStrike = false;
+                this.hasTriggeredRecovery = false;
+                this.shields = 3;
+                this.isShowingIdiom = false;
+                this.updateShields();
+                this.isRunning = true; this.isPaused = false; this.startTime = Date.now();
+                this.spawn(true); this.gameLoop(); this.schedulePlanet();
+                window.addEventListener('keydown', this._keydownHandler = (e) => this.handleInput(e));
+            },
+            togglePause() {
+                if (!this.isRunning) return;
+                this.isPaused = !this.isPaused;
+                const overlay = document.getElementById('pauseOverlay');
+                if (this.isPaused) {
+                    overlay.classList.add('active');
+                    musicEngine.stop();
+                } else {
+                    overlay.classList.remove('active');
+                    musicEngine.start();
+                }
+            },
+            spawn(isInitial = false) {
+                if (!this.isRunning || this.isPaused) return;
+
+                // 根据难度限制屏幕上的敌人数量（行星最多不超过 3 个，防止视觉混乱）
+                let maxEnemies = this.difficultyFactor <= 0.6 ? 3 : (this.difficultyFactor <= 1.0 ? 4 : 5);
+                if (this.difficultyFactor <= 0.5) maxEnemies = 3;
+                // 额外限制：屏幕上最多只能有 3 个行星
+                const planetCount = this.enemies.filter(e => e.word.length >= 5).length;
+                if (planetCount >= 3) {
+                    setTimeout(() => this.spawn(), 500);
+                    return;
+                }
+                if (this.enemies.length >= maxEnemies) {
+                    setTimeout(() => this.spawn(), 500);
+                    return;
+                }
+
+                // 极慢和慢速模式只选择 1-2 个字母的单词
+                let availableWords = dictionary;
+                if (this.difficultyFactor <= 0.5) {
+                    availableWords = dictionary.filter(w => w.length <= 2);
+                }
+
+                const word = availableWords[Math.floor(Math.random() * availableWords.length)];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const el = document.createElement('div');
+                el.className = 'enemy';
+
+                // 体型随单词长度增大 (例如 2个字母是 1x，10个字母大约是 2x)
+                const baseScale = Math.max(1, word.length / 4);
+
+                // 加入准星元素
+                el.innerHTML = `
+                    <div class="crosshair"></div>
+                    ${createEnemySVG(color, baseScale)}
+                    <div class="enemy-word" style="font-size: ${18 * Math.max(1, baseScale * 0.8)}px"><span class="remaining">${word}</span></div>
+                `;
+
+                // 为了防止大目标出界，限制 left 边距
+                el.style.left = 50 + Math.random() * (window.innerWidth - 350 - (60 * baseScale)) + 'px';
+                // 如果是初始生成的第一批，让他们立即出现在屏幕顶部区域（y=0~50）而不是屏幕外
+                const startY = isInitial ? (Math.random() * 50) : -150;
+                el.style.top = startY + 'px'; 
+                document.getElementById('gameArea').appendChild(el);
+                const enemy = { word, typed: '', element: el, y: startY, color, scale: baseScale };
+                this.enemies.push(enemy);
+
+                // 如果是初始化，立刻再生成一个以保证屏幕上有目标
+                if (isInitial && this.enemies.length < Math.min(2, maxEnemies)) {
+                    this.spawn(true);
+                    return;
+                }
+
+                // 随时间增加生成速度 (无论是否暂停都继续安排定时器，定时器内会检查状态)
+                setTimeout(() => this.spawn(), Math.max(600, (2000 - Math.floor(this.score / 200) * 100) / this.difficultyFactor));
+            },
+            gameLoop() {
+                if (!this.isRunning) return;
+                
+                // Keep socket network ticking even when paused
+                if (!this.isPaused) {
+                    const timeAlive = Date.now() - this.startTime;
+                    let accuracy = this.totalChars ? (this.correctChars / this.totalChars) : 1;
+                    
+                    // Frenzy Mode Logic
+                    if (timeAlive > 30000 && accuracy >= 0.95 && this.combo > 20) {
+                        if (!this.isFrenzy) {
+                            this.isFrenzy = true;
+                            document.body.classList.add('frenzy-mode');
+                            this.triggerIdiom('精准类');
+                        }
+                    } else if (this.isFrenzy && (accuracy < 0.95 || this.combo < 5)) {
+                        this.isFrenzy = false;
+                        document.body.classList.remove('frenzy-mode');
+                    }
+
+                    let baseVelocity = (this.speed + (this.score / 5000)) * this.difficultyFactor;
+                    if (this.isFrenzy) baseVelocity *= 1.2;
+
+                    this.enemies.forEach((en) => {
+                        // 动态难度公平化：长度越长，由于词更难打且体型庞大，下降速度越慢
+                        let s = baseVelocity / Math.max(1, en.word.length / 3);
+
+                        en.y += s;
+                        en.element.style.transform = `translateY(${en.y}px)`;
+                        if (en.y > window.innerHeight - 150) {
+                            this.handleCollision(en);
+                        }
+                    });
+
+                    // 保护机制：确保屏幕上始终有字母掉落
+                    if (this.enemies.length === 0) {
+                        this.spawn();
+                    }
+
+                    this.updateStats(); 
+                }
+                
+                // Network update throttle - allows scoring to update correctly even when paused
+                if (Date.now() - this.lastScoreUpdate > 1000) {
+                    const timeAlive = Date.now() - this.startTime;
+                    const wpm = Math.round((this.correctChars / 5) / (timeAlive / 60000)) || 0;
+                    if (wpm > this.maxWPM && wpm > 40) {
+                        this.maxWPM = wpm;
+                        if (wpm % 10 === 0 && !this.isPaused) this.triggerIdiom('速度类');
+                    }
+                    netEngine.updateScore(this.score, wpm);
+                    this.lastScoreUpdate = Date.now();
+                }
+
+                requestAnimationFrame(() => this.gameLoop());
+            },
+            handleInput(e) {
+                if (!this.isRunning) return;
+                
+                // Pause Support
+                if (e.key === 'Escape') {
+                    this.togglePause();
+                    return;
+                }
+                if (this.isPaused) return;
+                
+                // 只接受英文字母
+                if (!/^[a-zA-Z]$/.test(e.key) || e.ctrlKey || e.altKey || e.metaKey) return;
+                
+                const char = e.key.toLowerCase();
+                this.totalChars++;
+                
+                if (this.lockedEnemy) {
+                    if (char === this.lockedEnemy.word[this.lockedEnemy.typed.length].toLowerCase()) {
+                        if (this.lockedEnemy.justMadeError && !this.hasTriggeredRecovery) {
+                            this.triggerIdiom('纠错类');
+                            this.hasTriggeredRecovery = true;
+                            this.lockedEnemy.justMadeError = false;
+                        }
+                        this.hit(this.lockedEnemy);
+                    } else { 
+                        this.combo = 0; 
+                        this.lockedEnemy.justMadeError = true;
+                        // 震动错误提示
+                        this.lockedEnemy.element.style.transform = `translateY(${this.lockedEnemy.y}px) translateX(10px)`;
+                        setTimeout(() => { if(this.lockedEnemy) this.lockedEnemy.element.style.transform = `translateY(${this.lockedEnemy.y}px)`; }, 50);
+                    }
+                } else {
+                    const match = this.enemies.find(en => en.word[0].toLowerCase() === char);
+                    if (match) { 
+                        this.lockedEnemy = match; 
+                        match.element.classList.add('locked');
+                        if (!this.hasTriggeredFirstStrike) {
+                            this.triggerIdiom('首击类');
+                            this.hasTriggeredFirstStrike = true;
+                        }
+                        this.hit(match); 
+                    } else { 
+                        this.combo = 0; 
+                    }
+                }
+            },
+            hit(en) {
+                // 因为都是英文字母，直接取对应字符
+                en.typed += en.word[en.typed.length];
+                en.element.querySelector('.enemy-word').innerHTML = `<span class="typed">${en.word.substring(0, en.typed.length)}</span><span class="remaining">${en.word.substring(en.typed.length)}</span>`;
+                this.correctChars++; this.combo++;
+                if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+                
+                const r = en.element.getBoundingClientRect(); 
+                fireLaser(r.left + r.width / 2, r.top + r.height / 3);
+                audio.playKey(this.combo);
+                
+                if (en.typed.length === en.word.length) this.destroy(en);
+            },
+            destroy(en) {
+                // 高难度/长字母目标的极高分红 (平方级奖励)
+                let baseScore = (en.word.length * en.word.length * 5) + this.combo * 5;
+                if (this.isFrenzy) baseScore *= 2;
+                this.score += Math.floor(baseScore * this.difficultyFactor);
+                
+                const r = en.element.getBoundingClientRect(); 
+                const cx = r.left + r.width / 2;
+                const cy = r.top + r.height / 3;
+                
+                // 击毁特效与长度关联
+                const isBigBoss = en.word.length > 5;
+                if (isBigBoss && Math.random() > 0.2) {
+                    createParticles(cx, cy, en.color, 4, 15, 0.04); // 减配版大爆炸
+                    audio.playHeavyExplosion();
+                } else {
+                    createParticles(cx, cy, en.color, 2, 5, 0.08); // 极简短小爆炸
+                    audio.playExplosion();
+                }
+                
+                // 高连击触发烟花特效 (每10连击一次)
+                if (this.combo > 0 && this.combo % 10 === 0) {
+                    createFirework(cx, cy);
+                    this.triggerIdiom('连击类');
+                } else {
+                    audio.playExplosion();
+                }
+                
+                en.element.remove();
+                this.enemies = this.enemies.filter(e => e !== en);
+                if (this.lockedEnemy === en) this.lockedEnemy = null;
+
+                // 极慢模式下，如果屏幕上没有字母了，立即生成一个
+                if (this.difficultyFactor <= 0.5 && this.enemies.length === 0) {
+                    setTimeout(() => this.spawn(), 100);
+                }
+            },
+            triggerIdiom(category) {
+                if (this.isShowingIdiom) return;
+                const list = idiomDB[category] || idiomDB['速度类'];
+                const idiom = list[Math.floor(Math.random() * list.length)];
+                
+                // Append to achieved list if not present
+                if (!this.triggeredIdioms.find(i => i.word === idiom.word)) {
+                    this.triggeredIdioms.push(idiom);
+                }
+                
+                this.isShowingIdiom = true;
+                const c = colors[Math.floor(Math.random() * colors.length)];
+                const g = document.createElement('div');
+                g.className = 'giant-combo'; g.innerText = idiom.word; g.style.color = c;
+                document.getElementById('gameArea').appendChild(g);
+                setTimeout(() => {
+                    g.remove();
+                    this.isShowingIdiom = false;
+                }, 1000);
+            },
+            updateStats() {
+                document.getElementById('score').innerText = this.score.toString().padStart(6, '0');
+                document.getElementById('accuracy').innerText = (this.totalChars ? Math.round((this.correctChars / this.totalChars) * 100) : 100) + '%';
+                const wpm = Math.round((this.correctChars / 5) / ((Date.now() - this.startTime) / 60000)) || 0;
+                document.getElementById('wpm').innerText = wpm + ' WPM';
+                
+                const comboEl = document.getElementById('comboText');
+                comboEl.innerText = 'X ' + this.combo;
+                const comboScale = this.combo > 0 ? 1 + Math.min(1, this.combo / 20) : 0.6;
+                comboEl.style.opacity = this.combo > 0 ? Math.min(0.8, this.combo / 30) : 0.45;
+                comboEl.style.transform = `scale(${comboScale})`;
+                if(this.combo >= 10) {
+                    comboEl.style.color = '#ff0040';
+                    comboEl.style.textShadow = '0 0 20px #ff0040';
+                } else {
+                    comboEl.style.color = 'var(--accent-color)';
+                    comboEl.style.textShadow = 'none';
+                }
+            },
+            handleCollision(enemy) {
+                if (!this.isRunning) return;
+                
+                // 爆炸波特效 (从下至上渐变闪光消除字母)
+                const hitWave = document.createElement('div');
+                hitWave.className = 'hit-wave';
+                document.body.appendChild(hitWave);
+                setTimeout(() => hitWave.remove(), 600);
+                
+                const wall = document.getElementById('cityWall');
+                if (wall) {
+                    wall.classList.remove('wall-hit-flash');
+                    void wall.offsetWidth; // trigger reflow
+                    wall.classList.add('wall-hit-flash');
+                }
+                
+                if (enemy) {
+                    this.combo = 0;
+                    // 移除多余粒子效果，仅靠整体变红闪光提示受伤即可
+                    audio.playHit();
+                    enemy.element.remove();
+                    this.enemies = this.enemies.filter(e => e !== enemy);
+                    if (this.lockedEnemy === enemy) this.lockedEnemy = null;
+                }
+                
+                this.shields--;
+                this.updateShields();
+                
+                if (this.shields <= 0) {
+                    this.gameOver();
+                }
+            },
+            updateShields() {
+                for (let i = 1; i <= 3; i++) {
+                    const bar = document.getElementById(`energy${i}`);
+                    if (!bar) continue;
+                    if (i > this.shields) {
+                        bar.classList.add('depleted');
+                    } else {
+                        bar.classList.remove('depleted');
+                    }
+                }
+            },
+            schedulePlanet() {
+                if (!this.isRunning) return;
+                const nextSpawn = 3000 + Math.random() * 8000;
+                setTimeout(() => {
+                    if (this.isRunning && !this.isPaused) {
+                        this.spawnPlanet();
+                    }
+                    this.schedulePlanet();
+                }, nextSpawn);
+            },
+            spawnPlanet() {
+                const planets = [
+                    // Sun
+                    { svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="40" fill="#FFD700" /><circle cx="50" cy="50" r="45" fill="none" stroke="#FFA500" stroke-width="2" stroke-dasharray="4 4" /></svg>`, name: "太阳" },
+                    // Moon
+                    { svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M70,20 A40,40 0 1,0 80,80 A30,30 0 1,1 70,20" fill="#DDDDDD" /></svg>`, name: "月球" },
+                    // Earth
+                    { svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="40" fill="#4B9CD3" /><path d="M20,50 Q30,30 50,40 T80,40 Q70,70 40,60 T20,50" fill="#66B032" /></svg>`, name: "地球" },
+                    // Mars
+                    { svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="30" fill="#C1440E" /><circle cx="40" cy="40" r="5" fill="#A03000" /><circle cx="60" cy="60" r="8" fill="#A03000" /></svg>`, name: "火星" },
+                    // Saturn
+                    { svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><ellipse cx="50" cy="50" rx="45" ry="15" fill="none" stroke="#D4AF37" stroke-width="4" transform="rotate(-20 50 50)"/><circle cx="50" cy="50" r="25" fill="#EADDCA" /><ellipse cx="50" cy="50" rx="45" ry="15" fill="none" stroke="#C5A030" stroke-width="2" transform="rotate(-20 50 50) scale(1.1)"/></svg>`, name: "土星" },
+                    // Jupiter
+                    { svg: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="50" r="35" fill="#D39C7E" /><path d="M18,35 Q50,45 82,35 M15,50 Q50,60 85,50 M18,65 Q50,75 82,65" stroke="#C88B3A" stroke-width="4" fill="none"/></svg>`, name: "木星" }
+                ];
+                const planetObj = planets[Math.floor(Math.random() * planets.length)];
+                const el = document.createElement('div');
+                el.className = 'planet';
+                
+                // Random size 80 to 250
+                const size = 80 + Math.random() * 170;
+                el.style.width = size + 'px';
+                el.style.height = size + 'px';
+                
+                const container = document.getElementById('planetContainer');
+                if (!container) return;
+                
+                // 限制行星只能在屏幕最左侧 15% 的区域生成，避免和中间掉落的字母重叠
+                el.style.left = (10 + Math.random() * (window.innerWidth * 0.15)) + 'px';
+                el.style.top = '-300px';
+                
+                el.innerHTML = planetObj.svg + `<div class="planet-name">${planetObj.name}</div>`;
+                container.appendChild(el);
+                
+                let py = -300;
+                // Faster than words to simulate fast forward travel, but slowed down per user request
+                const pSpeed = (1 + Math.random() * 3) * this.difficultyFactor;
+                
+                const anim = () => {
+                    if (!this.isRunning || this.isPaused) return requestAnimationFrame(anim);
+                    py += pSpeed * (this.isFrenzy ? 1.5 : 1);
+                    el.style.transform = `translateY(${py}px)`;
+                    if (py > window.innerHeight + 200) {
+                        el.remove();
+                    } else {
+                        requestAnimationFrame(anim);
+                    }
+                };
+                requestAnimationFrame(anim);
+            },
+            clearScreen() {
+                // 清除所有敌人
+                this.enemies.forEach(en => {
+                    en.element.remove();
+                });
+                this.enemies = [];
+                this.lockedEnemy = null;
+
+                // 简单的全屏闪光效果
+                const effect = document.createElement('div');
+                effect.className = 'screen-clear-effect';
+                document.body.appendChild(effect);
+                setTimeout(() => effect.remove(), 600);
+
+                // 光波后立即开始生成新敌人
+                setTimeout(() => {
+                    if (this.isRunning && !this.isPaused) {
+                        this.spawn();
+                    }
+                }, 600);
+            },
+            async gameOver() {
+                this.isRunning = false; 
+                this.isPaused = false;
+                document.getElementById('pauseOverlay').classList.remove('active');
+                
+                document.getElementById('gameOverOverlay').style.display = 'flex';
+                document.getElementById('finalScore').innerText = this.score;
+                document.getElementById('chaseHud').style.display = 'none';
+                
+                // 渲染成语知识模块
+                const idiomRev = document.getElementById('idiomReviewWrapper');
+                idiomRev.innerHTML = '';
+                if(this.triggeredIdioms.length > 0) {
+                    let html = '<div style="color:#00f2ff; font-weight:bold; margin-bottom:10px;">本局解锁的成语知识：</div>';
+                    this.triggeredIdioms.forEach(idiom => {
+                        html += `
+                            <div class="idiom-item">
+                                <span class="idiom-phrase">${idiom.word}</span>
+                                <span class="idiom-meaning">${idiom.meaning}</span>
+                            </div>
+                        `;
+                    });
+                    idiomRev.innerHTML = html;
+                }
+                
+                musicEngine.stop();
+                audio.playGameOver();
+                
+                // Reset session score on backend so player drops to bottom
+                netEngine.resetScore();
+
+                const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                if (studentInfo.id && typeof submitPractice !== 'undefined') {
+                    try {
+                        const saveData = {
+                            student_id: studentInfo.id,
+                            mode: 'interstellar-typist',
+                            score: this.score,
+                            duration: Math.round((Date.now() - this.startTime) / 1000),
+                            extra_data: {
+                                wpm: parseInt(document.getElementById('wpm').innerText),
+                                accuracy: document.getElementById('accuracy').innerText,
+                                idioms: this.triggeredIdioms.map(i => ({ word: i.word, meaning: i.meaning })),
+                                maxCombo: this.maxCombo,
+                                bestRank: this.myBestRank,
+                                reachedFirst: this.reachedFirstPlace,
+                                playerCount: document.querySelectorAll('.lb-item').length
+                            }
+                        };
+                        console.log('保存数据:', saveData);
+                        const result = await submitPractice(saveData);
+                        console.log('保存成功:', result);
+                    } catch (e) {
+                        console.error("保存失败:", e);
+                    }
+                } else {
+                    console.warn('未登录或API未加载');
+                }
+            },
+            restart() {
+                // Keep the canvas, reset state, and spin up again
+                document.getElementById('gameOverOverlay').style.display = 'none';
+                this.enemies.forEach(en => en.element.remove());
+                this.enemies = [];
+                this.score = 0;
+                this.combo = 0;
+                this.totalChars = 0;
+                this.correctChars = 0;
+                this.lockedEnemy = null;
+                this.isFrenzy = false;
+                document.body.classList.remove('frenzy-mode');
+
+                if (this._keydownHandler) {
+                    window.removeEventListener('keydown', this._keydownHandler);
+                }
+                this.start();
+            }
+        };
+
+        async function confirmExit() {
+            if (!game.isRunning) {
+                location.href = 'practice.html';
+                return;
+            }
+
+            const choice = confirm('游戏正在进行中！\n\n点击"确定"保存当前记录并退出\n点击"取消"直接退出（不保存记录）');
+
+            if (choice) {
+                await saveGameRecord();
+            }
+            location.href = 'practice.html';
+        }
+
+        async function saveGameRecord() {
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+            if (studentInfo.id && typeof submitPractice !== 'undefined') {
+                try {
+                    const saveData = {
+                        student_id: studentInfo.id,
+                        mode: 'interstellar-typist',
+                        score: game.score,
+                        duration: Math.round((Date.now() - game.startTime) / 1000),
+                        extra_data: {
+                            wpm: parseInt(document.getElementById('wpm').innerText),
+                            accuracy: document.getElementById('accuracy').innerText,
+                            idioms: game.triggeredIdioms.map(i => ({ word: i.word, meaning: i.meaning })),
+                            maxCombo: game.maxCombo,
+                            bestRank: game.myBestRank,
+                            reachedFirst: game.reachedFirstPlace,
+                            playerCount: document.querySelectorAll('.lb-item').length
+                        }
+                    };
+                    await submitPractice(saveData);
+                } catch (e) {
+                    console.error("保存失败:", e);
+                }
+            }
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                musicEngine.stop();
+            } else if (game.isRunning) {
+                musicEngine.start();
+            }
+        });
+    </script>
+</body>
+
+</html>

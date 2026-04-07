@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生登录</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { padding-top: 0; }
+        .login-container {
+            max-width: 450px;
+            text-align: center;
+        }
+        .logo-section-center {
+            margin-bottom: 30px;
+        }
+        .logo-section-center .logo-icon {
+            font-size: 60px;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .logo-section-center .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        .school-row {
+            margin-bottom: 15px;
+        }
+        .grade-class-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .link-text {
+            color: #666;
+            margin-top: 20px;
+            opacity: 0.9;
+        }
+        .link-text a {
+            color: #DC143C;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container login-container">
+        <div class="logo-section-center">
+            <span class="logo-icon">📚</span>
+            <span class="logo-text">拼音打字系统</span>
+        </div>
+
+        <h1 style="margin-bottom: 30px;">学生登录</h1>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <div class="school-row">
+                    <label>学校</label>
+                    <select id="school" required onchange="updateClassOptions()">
+                        <option value="">请选择学校</option>
+                        <option value="谷山学校">谷山学校</option>
+                        <option value="中华路小学">中华路小学</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="grade-class-row">
+                    <div>
+                        <label>年级</label>
+                        <select id="grade" required onchange="updateClassOptions()">
+                            <option value="">请选择年级</option>
+                            <option value="1">一年级</option>
+                            <option value="2">二年级</option>
+                            <option value="3">三年级</option>
+                            <option value="4">四年级</option>
+                            <option value="5">五年级</option>
+                            <option value="6">六年级</option>
+                            <option value="7">七年级</option>
+                            <option value="8">八年级</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>班级</label>
+                        <select id="classNumber" required onchange="updateNameOptions()">
+                            <option value="">请先选择年级</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>姓名</label>
+                <select id="identifier" required>
+                    <option value="">请先选择班级</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" placeholder="请输入密码" value="123456" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">登录</button>
+        </form>
+
+        <div class="link-text">
+            还没有账号？<a href="register.html">去注册</a>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        function updateSchoolOptions() {
+            const schoolSelect = document.getElementById('school');
+            const gradeSelect = document.getElementById('grade');
+            const classSelect = document.getElementById('classNumber');
+            const nameSelect = document.getElementById('identifier');
+
+            // 从 localStorage 获取学校列表
+            const schools = JSON.parse(localStorage.getItem('schoolList') || '["中华路小学", "谷山学校"]');
+
+            // 更新学校选项
+            let schoolOptions = '<option value="">请选择学校</option>';
+            schools.forEach(school => {
+                // 默认选择中华路小学
+                const selected = (schoolSelect.value || '中华路小学') === school ? 'selected' : '';
+                schoolOptions += `<option value="${school}" ${selected}>${school}</option>`;
+            });
+            schoolSelect.innerHTML = schoolOptions;
+
+            if (schoolSelect.value) {
+                updateClassOptions();
+            } else {
+                gradeSelect.value = '';
+                classSelect.value = '';
+                nameSelect.value = '';
+                gradeSelect.disabled = true;
+                classSelect.disabled = true;
+                nameSelect.disabled = true;
+            }
+        }
+
+        function updateClassOptions() {
+            const school = document.getElementById('school').value;
+            const grade = document.getElementById('grade').value;
+            const classSelect = document.getElementById('classNumber');
+            const gradeSelect = document.getElementById('grade');
+            const nameSelect = document.getElementById('identifier');
+
+            if (!school) {
+                classSelect.innerHTML = '<option value="">请先选择学校</option>';
+                nameSelect.innerHTML = '<option value="">请先选择班级</option>';
+                gradeSelect.disabled = true;
+                classSelect.disabled = true;
+                nameSelect.disabled = true;
+                return;
+            } else {
+                gradeSelect.disabled = false;
+            }
+
+            if (!grade) {
+                classSelect.innerHTML = '<option value="">请先选择年级</option>';
+                nameSelect.innerHTML = '<option value="">请先选择班级</option>';
+                classSelect.disabled = true;
+                nameSelect.disabled = true;
+                return;
+            }
+
+            classSelect.disabled = false;
+            let currentClass = classSelect.value;
+            let options = '<option value="">请选择班级</option>';
+            for (let i = 1; i <= 10; i++) {
+                const selected = parseInt(currentClass) === i ? 'selected' : '';
+                options += `<option value="${i}" ${selected}>${i}班</option>`;
+            }
+            classSelect.innerHTML = options;
+            
+            updateNameOptions();
+        }
+
+        async function updateNameOptions() {
+            const school = document.getElementById('school').value;
+            const grade = document.getElementById('grade').value;
+            const classNumber = document.getElementById('classNumber').value;
+            const nameSelect = document.getElementById('identifier');
+
+            if (!school || !grade || !classNumber) {
+                nameSelect.innerHTML = '<option value="">请先选择班级</option>';
+                nameSelect.disabled = true;
+                return;
+            }
+
+            nameSelect.disabled = true;
+            nameSelect.innerHTML = '<option value="">加载中...</option>';
+
+            try {
+                const res = await getStudentsByClass(school, grade, classNumber);
+                if (res.success && res.students.length > 0) {
+                    nameSelect.disabled = false;
+                    let options = '<option value="">请选择姓名</option>';
+                    res.students.forEach(s => {
+                        options += `<option value="${s.name}">${s.name}</option>`;
+                    });
+                    nameSelect.innerHTML = options;
+                } else {
+                    nameSelect.innerHTML = '<option value="">该班级暂无学生</option>';
+                }
+            } catch (err) {
+                console.error(err);
+                nameSelect.innerHTML = '<option value="">加载失败，请重试</option>';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+
+            const identifier = document.getElementById('identifier').value.trim();
+            const school = document.getElementById('school').value;
+            const grade = parseInt(document.getElementById('grade').value);
+            const classNumber = parseInt(document.getElementById('classNumber').value);
+            const password = document.getElementById('password').value;
+
+            if (!identifier) {
+                alert('请选择姓名');
+                return;
+            }
+
+            try {
+                const result = await login(identifier, school, grade, classNumber, password);
+
+                if (result.success) {
+                    localStorage.setItem('studentInfo', JSON.stringify(result.student));
+                    alert('登录成功！');
+                    location.href = 'home.html';
+                } else {
+                    alert(result.error || '登录失败');
+                }
+            } catch (err) {
+                alert('登录失败，请检查网络连接');
+                console.error(err);
+            }
+        }
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+             updateSchoolOptions();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于我们 - 苹湖拼音打字系统</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f7;
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --text-muted: #a1a1a6;
+            --accent-blue: #0071e3;
+            --accent-blue-dark: #005bb5;
+            --accent-green: #34c759;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+                         'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding-top: 70px;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 5%;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .header-logo-icon {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #0071e3 0%, #00c7ff 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 24px;
+        }
+
+        .header-nav a {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        .header-nav a:hover {
+            color: var(--text-primary);
+        }
+
+        .hero {
+            background: linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%);
+            padding: 80px 5% 60px;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: rgba(0, 113, 227, 0.1);
+            color: var(--accent-blue);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #1d1d1f 0%, #434344 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .section {
+            padding: 80px 5%;
+            max-width: 980px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 40px;
+            letter-spacing: -0.5px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: var(--shadow-sm);
+            transition: all var(--transition-smooth);
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #0071e3 0%, #00c7ff 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(0, 113, 227, 0.25);
+        }
+
+        .feature-card h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .stats-section {
+            background: var(--bg-primary);
+            padding: 80px 5%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .stat-item h4 {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+        .stat-item p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .content-block {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 48px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .content-block h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .content-block p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        .content-block ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .content-block li {
+            font-size: 15px;
+            color: var(--text-secondary);
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .content-block li::before {
+            content: "✓";
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .cta-section {
+            background: linear-gradient(135deg, #0071e3 0%, #00c7ff 100%);
+            padding: 80px 5%;
+            text-align: center;
+            color: white;
+        }
+
+        .cta-section h2 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            font-size: 17px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: white;
+            color: var(--accent-blue);
+            padding: 14px 32px;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .footer {
+            background: var(--bg-primary);
+            padding: 40px 5%;
+            text-align: center;
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .footer p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .back-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 12px 24px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header-nav {
+                display: none;
+            }
+            
+            .content-block {
+                padding: 32px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="home.html" class="header-logo">
+            <div class="header-logo-icon">📚</div>
+            <span>苹湖拼音打字系统</span>
+        </a>
+        <nav class="header-nav">
+            <a href="home.html">首页</a>
+            <a href="about.html">关于我们</a>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-badge">教育科技 · 创新未来</div>
+        <h1>让孩子爱上的打字练习</h1>
+        <p class="hero-subtitle">一款专为中小学生设计的拼音打字练习系统，让学习变成一场有趣的星际冒险</p>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">为什么选择我们？</h2>
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎮</div>
+                <h3>游戏化学习体验</h3>
+                <p>将打字练习与星际冒险游戏相结合，孩子在玩游戏的过程中不知不觉提升打字速度，让学习变得有趣且令人上瘾。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>科学的练习体系</h3>
+                <p>根据不同年龄段设计分级练习内容，从简单到复杂，循序渐进。同时记录每一次练习数据，让进步看得见。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🏆</div>
+                <h3>趣味排行榜</h3>
+                <p>实时更新的排行榜激发孩子的 competitive 意识，与同学互相鼓励、共同进步，在良性竞争中提升技能。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>安全可靠</h3>
+                <p>严格保护学生隐私数据，没有广告弹窗干扰，为孩子营造专注、健康的学习环境，让家长更放心。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>全面数据分析</h3>
+                <p>为老师提供班级整体数据分析，了解学生打字水平分布，科学指导教学；为家长提供孩子专属的成长报告。</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💻</div>
+                <h3>跨平台使用</h3>
+                <p>无需下载安装软件，浏览器直接访问。支持电脑、平板等多种设备，随时随地都能开始练习。</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h4>10000+</h4>
+                <p>累计练习用户</p>
+            </div>
+            <div class="stat-item">
+                <h4>500万+</h4>
+                <p>累计打字字数</p>
+            </div>
+            <div class="stat-item">
+                <h4>50+</h4>
+                <p>合作学校</p>
+            </div>
+            <div class="stat-item">
+                <h4>98%</h4>
+                <p>用户满意度</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="content-block">
+            <h2>🎯 产品愿景</h2>
+            <p>我们相信，每个孩子都有成为打字高手的潜力。苹湖拼音打字系统旨在通过创新、有趣的方式，帮助每一位学生掌握键盘输入技能，为未来的数字化学习奠定坚实基础。</p>
+            <p>打字不仅是，更是一项重要的基础技能。良好的打字能力让孩子在考试中节省时间，在日常学习中提高效率，在未来工作中展现竞争力。</p>
+        </div>
+
+        <div class="content-block">
+            <h2>👨‍👩‍👧‍👦 面向群体</h2>
+            <ul>
+                <li><strong>中小学生</strong> — 通过游戏化练习，在快乐中提升打字速度与准确率</li>
+                <li><strong>家长</strong> — 随时查看孩子的学习进度与成长曲线，了解练习情况</li>
+                <li><strong>学校老师</strong> — 获取班级整体数据报告，科学评估学生打字水平，因材施教</li>
+                <li><strong>教育机构</strong> — 便捷部署到现有教学系统，助力信息技术课程建设</li>
+            </ul>
+        </div>
+
+        <div class="content-block">
+            <h2>✨ 核心功能</h2>
+            <ul>
+                <li><strong>正式测试模式</strong> — 60秒限时测试，还原真实考试场景，评估真实水平</li>
+                <li><strong>练习模式</strong> — 键盘基础练习游戏，边玩边练，轻松提升打字技能</li>
+                <li><strong>成绩统计</strong> — 详细记录每一次练习与测试数据，生成个人专属报告</li>
+                <li><strong>排行榜系统</strong> — 班级、校级排行榜，激发学习动力与 competitive 意识</li>
+                <li><strong>我的年级</strong> — 与同年级同学对比，了解自己在年级中的位置</li>
+                <li><strong>班级管理</strong> — 老师可批量导入学生、管理班级、查看全班数据</li>
+            </ul>
+        </div>
+
+        <div class="content-block">
+            <h2>🚀 未来规划</h2>
+            <p>我们将持续优化产品功能，计划推出：</p>
+            <ul>
+                <li>更多趣味游戏模式，让练习不再枯燥</li>
+                <li>AI 智能分析，为每个学生定制个性化练习方案</li>
+                <li>家校联动功能，让家长更参与孩子的学习过程</li>
+                <li>多语言支持，服务更多用户群体</li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <h2>开启孩子的打字进阶之路</h2>
+        <p>立即开始练习，让孩子在游戏中掌握受益终身的打字技能</p>
+        <a href="login.html" class="cta-button">开始使用</a>
+    </section>
+
+    <footer class="footer">
+        <p>© 2024 苹湖拼音打字系统 · 让学习更有趣</p>
+    </footer>
+
+    <a href="home.html" class="back-btn">← 返回首页</a>
+
+    <script>
+        // 滚动动画
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, index * 100);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.feature-card').forEach(card => {
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习模式数据统计</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body {
+            background: #f5f7fa;
+            display: block;
+            padding: 0;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .admin-nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .admin-nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: opacity 0.3s;
+        }
+
+        .admin-nav a:hover {
+            opacity: 0.8;
+        }
+
+        .admin-container {
+            max-width: 1600px;
+            margin: 30px auto;
+            padding: 0 30px;
+        }
+
+        .page-header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .page-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            color: #333;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* Tab导航 */
+        .game-tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .game-tab {
+            flex: 1;
+            min-width: 200px;
+            background: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+
+        .game-tab:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .game-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .game-tab-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .game-tab-name {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .game-tab-status {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        /* Tab内容区 */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 排行榜区域标题 */
+        .ranking-section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title-icon {
+            font-size: 28px;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 筛选工具栏 */
+        .filter-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-label-icon {
+            font-size: 20px;
+        }
+
+        .filter-divider {
+            color: #ddd;
+            font-weight: bold;
+        }
+
+        .filter-toolbar select {
+            padding: 10px 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f8f9fa;
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            transition: all 0.2s;
+            min-width: 110px;
+        }
+
+        .filter-toolbar select:hover {
+            border-color: #667eea;
+            background: #fff;
+        }
+
+        .filter-toolbar select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .refresh-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .filter-toolbar .last-update {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+        }
+
+        .toolbar button {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .last-update {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* 排行榜卡片网格 */
+        .rankings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 1200px) {
+            .rankings-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .rankings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 排行榜卡片 */
+        .ranking-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            min-height: 300px;
+        }
+
+        .ranking-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .ranking-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+        }
+
+        .ranking-card:hover::before {
+            opacity: 1;
+        }
+
+        .ranking-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .ranking-card-icon {
+            font-size: 28px;
+        }
+
+        .ranking-card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .ranking-desc {
+            font-size: 12px;
+            font-weight: normal;
+            color: #999;
+        }
+
+        /* 排行榜列表 */
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .ranking-item.top-three {
+            background: linear-gradient(90deg, #fff5e6 0%, #ffffff 100%);
+            border-left: 4px solid #ffd700;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .ranking-item:hover {
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .rank-badge {
+            font-size: 20px;
+            min-width: 28px;
+            text-align: center;
+        }
+
+        .ranking-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ranking-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .ranking-class {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .ranking-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #DC143C;
+            white-space: nowrap;
+        }
+
+        .ranking-unit {
+            font-size: 11px;
+            color: #888;
+            margin-left: 2px;
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 空数据状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        /* 占位符 */
+        .coming-soon {
+            background: white;
+            border-radius: 15px;
+            padding: 80px 40px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .coming-soon-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .coming-soon-text {
+            font-size: 24px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .coming-soon-desc {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .modal-header h3 { margin: 0; font-size: 20px; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .modal-body {
+            padding: 20px 25px;
+            max-height: calc(80vh - 80px);
+            overflow-y: auto;
+        }
+        .modal-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .modal-tab {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        .modal-tab:hover { background: #e9ecef; }
+        .modal-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+        .student-list-modal {
+            display: grid;
+            gap: 10px;
+        }
+        .student-item-modal {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .student-item-modal:hover {
+            background: #e9ecef;
+        }
+        .student-info-modal {
+            flex: 1;
+        }
+        .student-name-modal {
+            font-weight: 600;
+            color: #333;
+        }
+        .student-class-modal {
+            font-size: 13px;
+            color: #666;
+        }
+        .student-stats-modal {
+            text-align: right;
+        }
+        .student-score-modal {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 16px;
+        }
+        .student-meta-modal {
+            font-size: 12px;
+            color: #999;
+        }
+        .add-excellent-btn {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .add-excellent-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+        .add-excellent-btn.added {
+            background: #28a745;
+            cursor: default;
+        }
+        .school-name-link {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: underline;
+            font-weight: 500;
+        }
+        .school-name-link:hover {
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <!-- 学生详情弹窗 -->
+    <div class="modal-overlay" id="studentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">学生详情</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-nav">
+        <div><strong>📊 谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="test-records.html">测试记录</a>
+            <a href="practice-records.html">练习记录</a>
+            <a href="classes.html">班级管理</a>
+            <a href="ranking.html">优秀学生</a>
+            <a href="texts.html">文本库</a>
+            <a href="test-code.html">测试验证码</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div class="page-header">
+            <h1>📊 练习模式数据统计</h1>
+            <p>多维度排行榜展示 · 让每个学生都能找到自己的闪光点</p>
+        </div>
+
+        <!-- 游戏模式Tab -->
+        <div class="game-tabs">
+            <button class="game-tab active" data-game="interstellar-typist">
+                <div class="game-tab-icon">🚀</div>
+                <div class="game-tab-name">键盘基础练习</div>
+                <div class="game-tab-status">13个排行榜</div>
+            </button>
+            <button class="game-tab" data-game="fruit-catch">
+                <div class="game-tab-icon">🍎</div>
+                <div class="game-tab-name">拼音入门</div>
+                <div class="game-tab-status">敬请期待</div>
+            </button>
+            <button class="game-tab" data-game="adventure">
+                <div class="game-tab-icon">🗺️</div>
+                <div class="game-tab-name">英语闯关冒险</div>
+                <div class="game-tab-status">敬请期待</div>
+            </button>
+            <button class="game-tab" data-game="classics">
+                <div class="game-tab-icon">📜</div>
+                <div class="game-tab-name">国学打字</div>
+                <div class="game-tab-status">敬请期待</div>
+            </button>
+        </div>
+
+        <!-- 键盘基础练习内容 -->
+        <div class="tab-content active" id="interstellar-typist">
+            <!-- 筛选工具栏 -->
+            <div class="ranking-section">
+                <div class="filter-toolbar">
+                    <div class="filter-section">
+                        <span class="filter-label-icon">🏫</span>
+                        <select id="schoolFilter" onchange="onSchoolChange()">
+                            <option value="all">全部学校</option>
+                        </select>
+                        <span class="filter-divider">/</span>
+                        <select id="gradeFilterSelect" onchange="onGradeSelectChange()">
+                            <option value="all">全部年级</option>
+                        </select>
+                        <span class="filter-divider">/</span>
+                        <select id="classFilter" onchange="refreshData()">
+                            <option value="all">全部班级</option>
+                        </select>
+                    </div>
+                    <div class="filter-section">
+                        <select id="timeFilter">
+                            <option value="all">全部时间</option>
+                            <option value="today">今日</option>
+                            <option value="week">本周</option>
+                            <option value="month">本月</option>
+                        </select>
+                    </div>
+                    <div class="filter-section">
+                        <button class="refresh-btn" onclick="refreshData()">🔄 刷新</button>
+                        <span class="last-update" id="lastUpdate">--</span>
+                    </div>
+                </div>
+                <div class="rankings-grid" id="singleGameRankings">
+                    <!-- 卡片将通过JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 累计成就排行榜 -->
+            <div class="ranking-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="section-title-icon">📈</span>
+                        <span>累计成就排行榜</span>
+                    </div>
+                </div>
+                <div class="rankings-grid" id="cumulativeRankings" style="grid-template-columns: repeat(3, 1fr);">
+                    <!-- 卡片将通过JS动态生成 -->
+                </div>
+            </div>
+
+            <!-- 特殊条件排行榜 -->
+            <div class="ranking-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="section-title-icon">⭐</span>
+                        <span>特殊条件排行榜</span>
+                    </div>
+                </div>
+                <div class="rankings-grid" id="specialRankings" style="grid-template-columns: repeat(2, 1fr);">
+                    <!-- 卡片将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 拼音入门内容 -->
+        <div class="tab-content" id="fruit-catch">
+            <div class="coming-soon">
+                <div class="coming-soon-icon">🍎</div>
+                <div class="coming-soon-text">拼音入门统计</div>
+                <div class="coming-soon-desc">敬请期待...</div>
+            </div>
+        </div>
+
+        <!-- 英语闯关冒险内容 -->
+        <div class="tab-content" id="adventure">
+            <div class="coming-soon">
+                <div class="coming-soon-icon">🗺️</div>
+                <div class="coming-soon-text">英语闯关冒险统计</div>
+                <div class="coming-soon-desc">敬请期待...</div>
+            </div>
+        </div>
+
+        <!-- 国学打字内容 -->
+        <div class="tab-content" id="classics">
+            <div class="coming-soon">
+                <div class="coming-soon-icon">📜</div>
+                <div class="coming-soon-text">国学打字统计</div>
+                <div class="coming-soon-desc">敬请期待...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        // 学生详情弹窗
+        let currentStudentData = {};
+
+        function openStudentModal(data) {
+            currentStudentData = data;
+            document.getElementById('modalTitle').textContent = data.name + ' - 详情';
+
+            document.getElementById('modalBody').innerHTML = `
+                <div class="student-detail-card">
+                    <div class="student-detail-row">
+                        <span class="detail-label">姓名：</span>
+                        <span class="detail-value">${data.name}</span>
+                    </div>
+                    <div class="student-detail-row">
+                        <span class="detail-label">学校：</span>
+                        <span class="detail-value">${data.school || '未设置'}</span>
+                    </div>
+                    <div class="student-detail-row">
+                        <span class="detail-label">年级：</span>
+                        <span class="detail-value">${data.grade ? data.grade + '年级' : '未设置'}</span>
+                    </div>
+                    <div class="student-detail-row">
+                        <span class="detail-label">班级：</span>
+                        <span class="detail-value">${data.class || '未设置'}</span>
+                    </div>
+                    <div class="student-detail-row">
+                        <span class="detail-label">来源：</span>
+                        <span class="detail-value">${data.ranking_title || '未知'}</span>
+                    </div>
+                    <div class="student-detail-row">
+                        <span class="detail-label">分值：</span>
+                        <span class="detail-value highlight">${data.score}</span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="add-excellent-btn large" onclick="event.stopPropagation(); addToExcellent(${data.student_id}, '${data.name}', '${data.class}', '${data.school}', ${data.grade || 0}, '${data.score}', '${data.ranking_title}', this)">添加到优秀</button>
+                </div>
+            `;
+
+            document.getElementById('studentModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('studentModal').classList.remove('active');
+        }
+
+        async function addToExcellent(studentId, name, className, school, grade, score, rankingTitle, btn) {
+            if (btn.classList.contains('added')) return;
+
+            try {
+                const response = await fetch('/api/ranking/manual-excellent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: studentId,
+                        name: name,
+                        class: className,
+                        school: school,
+                        grade: grade,
+                        score: score,
+                        ranking_name: rankingTitle,
+                        reason: '手动添加'
+                    })
+                });
+
+                if (response.ok) {
+                    btn.textContent = '已添加';
+                    btn.classList.add('added');
+                } else {
+                    const data = await response.json();
+                    alert(data.error || '添加失败');
+                }
+            } catch (error) {
+                console.error('添加失败:', error);
+                alert('添加失败，请重试');
+            }
+        }
+
+        // 全局筛选选项数据
+        let filterOptions = {
+            schools: [],
+            grades: [],
+            classes: []
+        };
+
+        // Tab切换功能
+        document.querySelectorAll('.game-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const game = tab.dataset.game;
+
+                // 更新Tab状态
+                document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // 更新内容区域
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(game).classList.add('active');
+            });
+        });
+
+        // 获取筛选选项列表
+        async function loadFilterOptions() {
+            try {
+                const response = await fetch('/api/ranking/filter-options');
+                const data = await response.json();
+                
+                if (data.schools) filterOptions.schools = data.schools;
+                if (data.grades) filterOptions.grades = data.grades;
+                if (data.classes) filterOptions.classes = data.classes;
+                
+                // 填充学校下拉框
+                const schoolSelect = document.getElementById('schoolFilter');
+                schoolSelect.innerHTML = '<option value="all">全部学校</option>';
+                filterOptions.schools.forEach(school => {
+                    schoolSelect.innerHTML += `<option value="${school}">${school}</option>`;
+                });
+                
+                // 填充年级下拉框
+                const gradeSelect = document.getElementById('gradeFilterSelect');
+                gradeSelect.innerHTML = '<option value="all">全部年级</option>';
+                filterOptions.grades.forEach(grade => {
+                    gradeSelect.innerHTML += `<option value="${grade}">${grade}年级</option>`;
+                });
+                
+                // 填充班级下拉框
+                updateClassOptions();
+            } catch (error) {
+                console.error('加载筛选选项失败:', error);
+            }
+        }
+
+        // 学校选择变化时更新班级选项
+        function onSchoolChange() {
+            updateClassOptions();
+            refreshData();
+        }
+
+        // 年级下拉框变化时
+        function onGradeSelectChange() {
+            updateClassOptions();
+            refreshData();
+        }
+
+        // 更新班级下拉框选项
+        function updateClassOptions() {
+            const grade = document.getElementById('gradeFilterSelect').value;
+            const classSelect = document.getElementById('classFilter');
+            
+            classSelect.innerHTML = '<option value="all">全部班级</option>';
+            
+            let filteredClasses = filterOptions.classes;
+            
+            // 如果选择了年级，过滤班级
+            if (grade !== 'all') {
+                filteredClasses = filteredClasses.filter(c => c.grade === parseInt(grade));
+            }
+            
+            filteredClasses.forEach(c => {
+                classSelect.innerHTML += `<option value="${c.class_number}">${c.class}</option>`;
+            });
+        }
+
+        // 获取当前筛选参数
+        function getFilterParams() {
+            const school = document.getElementById('schoolFilter').value;
+            const grade = document.getElementById('gradeFilterSelect').value;
+            const class_number = document.getElementById('classFilter').value;
+            
+            const params = new URLSearchParams();
+            if (school !== 'all') params.append('school', school);
+            if (grade !== 'all') params.append('grade', grade);
+            if (class_number !== 'all') params.append('class_number', class_number);
+            
+            return params.toString();
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+
+        // 刷新数据
+        function refreshData() {
+            loadAllRankings();
+        }
+
+        // 加载所有排行榜数据
+        async function loadAllRankings() {
+            showLoading();
+
+            try {
+                // 顺序加载，确保卡片按固定顺序显示
+                await loadSingleGameRankings();
+                await loadCumulativeRankings();
+                await loadSpecialRankings();
+
+                updateLastUpdateTime();
+            } catch (error) {
+                console.error('加载排行榜失败:', error);
+                showError();
+            }
+        }
+
+        // 加载单局表现排行榜
+        async function loadSingleGameRankings() {
+            const rankings = [
+                { api: 'highest-score', icon: '🏆', title: '最高分数王', desc: '单局最高得分', valueKey: 'score', unit: '分' },
+                { api: 'fastest-speed', icon: '⚡', title: '速度之星', desc: '单局最高打字速度', valueKey: 'wpm', unit: 'WPM' },
+                { api: 'best-accuracy', icon: '🎯', title: '精准射手', desc: '累计平均准确率(≥5局,≥5分钟)', valueKey: 'accuracy', unit: '%' },
+                { api: 'max-combo', icon: '🔥', title: '连击大师', desc: '单局最高连击数', valueKey: 'max_combo', unit: '连击' },
+                { api: 'most-idioms', icon: '📚', title: '成语收藏家', desc: '累计收集成语总数', valueKey: 'idiom_count', unit: '个' },
+                { api: 'longest-duration', icon: '⏱️', title: '马拉松选手', desc: '单局最长游戏时长', valueKey: 'duration', unit: '秒', formatter: formatDuration }
+            ];
+
+            const container = document.getElementById('singleGameRankings');
+            const filterParams = getFilterParams();
+            
+            // 先清空容器
+            container.innerHTML = '';
+            
+            // 收集所有卡片 HTML
+            const cardsHTML = [];
+
+            for (const ranking of rankings) {
+                try {
+                    const url = `/api/ranking/interstellar-typist/${ranking.api}?limit=20${filterParams ? '&' + filterParams : ''}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    cardsHTML.push(createRankingCard(
+                        ranking.icon,
+                        ranking.title,
+                        ranking.desc,
+                        data.ranking || [],
+                        ranking.valueKey,
+                        ranking.unit,
+                        ranking.formatter
+                    ));
+                } catch (error) {
+                    console.error(`加载${ranking.title}失败:`, error);
+                    cardsHTML.push(createErrorCard(ranking.icon, ranking.title, ranking.desc));
+                }
+            }
+            
+            // 一次性渲染所有卡片，保证顺序
+            container.innerHTML = cardsHTML.join('');
+        }
+
+        // 加载累计成就排行榜
+        async function loadCumulativeRankings() {
+            const rankings = [
+                { api: 'total-score', icon: '👑', title: '总分霸主', desc: '累计总得分最高', valueKey: 'total_score', unit: '分' },
+                { api: 'total-duration', icon: '💪', title: '勤奋之星', desc: '累计游戏时长最长', valueKey: 'total_duration', unit: '', formatter: formatDuration },
+                { api: 'most-games', icon: '🎮', title: '游戏达人', desc: '累计游戏局数最多', valueKey: 'game_count', unit: '局' },
+                { api: 'avg-score', icon: '📊', title: '平均分王者', desc: '平均得分最高(≥3局)', valueKey: 'avg_score', unit: '分' },
+                { api: 'lowest-variance', icon: '🗿', title: '方差稳如泰山', desc: '得分方差最小最稳定(≥3局)', valueKey: 'variance', unit: '' },
+                { api: 'median-score', icon: '🏔️', title: '中位数之巅', desc: '成绩中位数最高(≥10局)', valueKey: 'median', unit: '分' }
+            ];
+
+            const container = document.getElementById('cumulativeRankings');
+            const filterParams = getFilterParams();
+            
+            container.innerHTML = '';
+            const cardsHTML = [];
+
+            for (const ranking of rankings) {
+                try {
+                    const url = `/api/ranking/interstellar-typist/${ranking.api}?limit=20${filterParams ? '&' + filterParams : ''}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    cardsHTML.push(createRankingCard(
+                        ranking.icon,
+                        ranking.title,
+                        ranking.desc,
+                        data.ranking || [],
+                        ranking.valueKey,
+                        ranking.unit,
+                        ranking.formatter
+                    ));
+                } catch (error) {
+                    console.error(`加载${ranking.title}失败:`, error);
+                    cardsHTML.push(createErrorCard(ranking.icon, ranking.title, ranking.desc));
+                }
+            }
+            
+            container.innerHTML = cardsHTML.join('');
+        }
+
+        // 加载特殊条件排行榜
+        async function loadSpecialRankings() {
+            const rankings = [
+                { api: 'lowest-accuracy', icon: '⌨️', title: '乱按键盘的文盲', desc: '平均正确率最低(≥3局)', valueKey: 'avg_accuracy', unit: '%' },
+                { api: 'best-efficiency', icon: '⚡', title: '效率专家', desc: '单位时间得分最高', valueKey: 'efficiency', unit: '分/秒' }
+            ];
+
+            const container = document.getElementById('specialRankings');
+            const filterParams = getFilterParams();
+            
+            container.innerHTML = '';
+            const cardsHTML = [];
+
+            for (const ranking of rankings) {
+                try {
+                    const url = `/api/ranking/interstellar-typist/${ranking.api}?limit=20${filterParams ? '&' + filterParams : ''}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    cardsHTML.push(createRankingCard(
+                        ranking.icon,
+                        ranking.title,
+                        ranking.desc,
+                        data.ranking || [],
+                        ranking.valueKey,
+                        ranking.unit,
+                        ranking.formatter,
+                        ranking.prefix
+                    ));
+                } catch (error) {
+                    console.error(`加载${ranking.title}失败:`, error);
+                    cardsHTML.push(createErrorCard(ranking.icon, ranking.title, ranking.desc));
+                }
+            }
+            
+            container.innerHTML = cardsHTML.join('');
+        }
+
+        // 显示加载状态
+        function showLoading() {
+            const containers = ['singleGameRankings', 'cumulativeRankings', 'specialRankings'];
+            containers.forEach(id => {
+                document.getElementById(id).innerHTML = `
+                    <div class="loading" style="grid-column: 1/-1;">
+                        <div class="loading-spinner"></div>
+                        <div>加载中...</div>
+                    </div>
+                `;
+            });
+        }
+
+        // 显示错误状态
+        function showError() {
+            const containers = ['singleGameRankings', 'cumulativeRankings', 'specialRankings'];
+            containers.forEach(id => {
+                document.getElementById(id).innerHTML = `
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div>加载失败，请稍后重试</div>
+                    </div>
+                `;
+            });
+        }
+
+        // 创建排行榜卡片
+        function createRankingCard(icon, title, desc, data, valueKey, unit, formatter, prefix = '') {
+            const emptyHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div>暂无数据</div>
+                </div>
+            `;
+
+            const uniqueData = [];
+            const seenStudentIds = new Set();
+            for (const item of data) {
+                if (!item || seenStudentIds.has(item.student_id)) continue;
+                seenStudentIds.add(item.student_id);
+                uniqueData.push(item);
+                if (uniqueData.length === 5) break;
+            }
+
+            const listHTML = uniqueData.length > 0 ? uniqueData.map((item, index) => {
+                let displayValue = item[valueKey];
+                if (formatter) {
+                    displayValue = formatter(displayValue);
+                }
+                if (prefix) {
+                    displayValue = prefix + displayValue;
+                }
+
+                // 学生信息：学校 + 年级 + 班级
+                let studentInfo = '';
+                if (item.school) {
+                    studentInfo = item.school;
+                }
+                if (item.grade) {
+                    studentInfo += (studentInfo ? ' ' : '') + item.grade + '年级';
+                }
+                if (item.class) {
+                    studentInfo += (studentInfo ? ' ' : '') + item.class;
+                }
+
+                // 弹窗数据
+                const modalData = JSON.stringify({
+                    student_id: item.student_id || '',
+                    name: item.name,
+                    school: item.school || '',
+                    grade: item.grade || '',
+                    class: item.class || '',
+                    score: displayValue,
+                    ranking_title: title
+                });
+
+                return `
+                    <div class="ranking-item ${index < 3 ? 'top-three' : ''}" onclick='openStudentModal(${modalData})'>
+                        <div class="rank-badge">${getRankIcon(index + 1)}</div>
+                        <div class="ranking-info">
+                            <div class="ranking-name">${item.name}</div>
+                            <div class="ranking-class">${studentInfo}</div>
+                        </div>
+                        <div class="ranking-value">
+                            ${displayValue}
+                            <span class="ranking-unit">${unit}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('') : emptyHTML;
+
+            return `
+                <div class="ranking-card">
+                    <div class="ranking-card-header">
+                        <div class="ranking-card-icon">${icon}</div>
+                        <div class="ranking-card-title">${title}<span class="ranking-desc">${desc}</span></div>
+                    </div>
+                    <div class="ranking-list">
+                        ${listHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 创建错误卡片
+        function createErrorCard(icon, title, desc) {
+            return `
+                <div class="ranking-card">
+                    <div class="ranking-card-header">
+                        <div class="ranking-card-icon">${icon}</div>
+                        <div class="ranking-card-title">${title}<span class="ranking-desc">${desc}</span></div>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div>加载失败</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 格式化时长（秒 -> 分钟秒）
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            if (minutes > 0) {
+                return `${minutes}分${secs}秒`;
+            }
+            return `${secs}秒`;
+        }
+
+        // 获取排名图标
+        function getRankIcon(rank) {
+            const icons = ['🥇', '🥈', '🥉'];
+            return icons[rank - 1] || rank;
+        }
+
+        // 更新最后更新时间
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdate').textContent = `最后更新: ${timeStr}`;
+        }
+
+        // 点击其他地方关闭弹窗
+        document.getElementById('studentModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // 页面加载时初始化
+        async function init() {
+            await loadFilterOptions();
+            loadAllRankings();
+        }
+        init();
+    </script>
+</body>
+</html>

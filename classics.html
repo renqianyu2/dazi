@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 国学打字</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { background: linear-gradient(135deg, #f5af19 0%, #f12711 100%); }
+        .game-container { max-width: 900px; }
+        .select-screen { background: white; padding: 40px; border-radius: 15px; text-align: center; }
+        .classic-btn { display: inline-block; width: 300px; padding: 30px; margin: 15px; background: white; border: 3px solid #f5af19; border-radius: 15px; cursor: pointer; transition: all 0.3s; }
+        .classic-btn:hover { transform: translateY(-5px); background: #f5af19; color: white; }
+        .classic-icon { font-size: 60px; margin-bottom: 15px; }
+        .classic-title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+        .classic-desc { color: #888; font-size: 14px; }
+        .game-screen { display: none; background: white; padding: 30px; border-radius: 15px; }
+        .stats-bar { display: flex; justify-content: space-around; padding: 20px; background: #fff3e0; border-radius: 10px; margin-bottom: 20px; }
+        .stat-item { text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; color: #f5af19; }
+        .stat-label { color: #888; font-size: 14px; margin-top: 5px; }
+        .text-display { font-size: 32px; line-height: 3; padding: 30px; background: #fafafa; border-radius: 10px; margin-bottom: 150px; min-height: 300px; }
+        .text-display .char-wrapper { display: inline-block; text-align: center; margin: 5px; vertical-align: top; }
+        .char-done { background: #38ef7d; color: white; border-radius: 5px; padding: 5px 8px; }
+        .char-current { background: #f5af19; color: white; border-radius: 5px; padding: 5px 8px; animation: pulse 1s infinite; }
+        .char-pending { color: #000; padding: 5px 8px; }
+        .pinyin-hint { font-size: 14px; color: #f5af19 !important; display: block; margin-bottom: 3px; font-weight: normal; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .input-area { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 100; }
+        .input-box { width: 100px; height: 100px; font-size: 60px; text-align: center; border: 3px solid #f5af19; border-radius: 10px; }
+        .toggle-pinyin { margin-bottom: 20px; }
+        .back-btn { position: absolute; top: 20px; right: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container game-container">
+        <h1 style="color: white; text-align: center; margin-bottom: 20px;">📜 国学打字</h1>
+
+        <div id="selectScreen" class="select-screen">
+            <h2>选择练习内容</h2>
+            <p style="color: #888; margin: 20px 0;">传承经典，练习打字</p>
+            <div>
+                <div class="classic-btn" onclick="startPractice('baijiaxing')">
+                    <div class="classic-icon">👨‍👩‍👧‍👦</div>
+                    <div class="classic-title">百家姓</div>
+                    <div class="classic-desc">赵钱孙李，周吴郑王<br>共504字</div>
+                </div>
+                <div class="classic-btn" onclick="startPractice('qianziwen')">
+                    <div class="classic-icon">📖</div>
+                    <div class="classic-title">千字文</div>
+                    <div class="classic-desc">天地玄黄，宇宙洪荒<br>共1000字</div>
+                </div>
+            </div>
+            <button class="btn btn-warning" onclick="location.href='practice.html'" style="margin-top: 20px;">返回</button>
+        </div>
+
+        <div id="gameScreen" class="game-screen">
+            <button class="btn btn-warning back-btn" onclick="backToSelect()">返回</button>
+            <button id="muteBtn" class="btn btn-secondary" onclick="Sound.toggleMute(); updateMuteBtn();" style="position: absolute; top: 20px; right: 80px;">音效: 开启</button>
+
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="progress">0/0</div>
+                    <div class="stat-label">进度</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="time">00:00</div>
+                    <div class="stat-label">用时</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="speed">0</div>
+                    <div class="stat-label">字/分钟</div>
+                </div>
+            </div>
+
+            <div class="toggle-pinyin" style="text-align: center;">
+                <label><input type="checkbox" id="showPinyin" checked> 显示拼音提示</label>
+            </div>
+
+            <div class="text-display" id="textDisplay"></div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" class="input-box" id="inputBox" maxlength="1">
+        </div>
+    </div>
+
+    <script src="js/sound.js"></script>
+    <script>
+        const classics = {
+            baijiaxing: {
+                title: '百家姓',
+                chars: [
+                    {c:'赵',p:'zhao'},{c:'钱',p:'qian'},{c:'孙',p:'sun'},{c:'李',p:'li'},{c:'周',p:'zhou'},{c:'吴',p:'wu'},{c:'郑',p:'zheng'},{c:'王',p:'wang'},
+                    {c:'冯',p:'feng'},{c:'陈',p:'chen'},{c:'褚',p:'chu'},{c:'卫',p:'wei'},{c:'蒋',p:'jiang'},{c:'沈',p:'shen'},{c:'韩',p:'han'},{c:'杨',p:'yang'},
+                    {c:'朱',p:'zhu'},{c:'秦',p:'qin'},{c:'尤',p:'you'},{c:'许',p:'xu'},{c:'何',p:'he'},{c:'吕',p:'lv'},{c:'施',p:'shi'},{c:'张',p:'zhang'},
+                    {c:'孔',p:'kong'},{c:'曹',p:'cao'},{c:'严',p:'yan'},{c:'华',p:'hua'},{c:'金',p:'jin'},{c:'魏',p:'wei'},{c:'陶',p:'tao'},{c:'姜',p:'jiang'},
+                    {c:'戚',p:'qi'},{c:'谢',p:'xie'},{c:'邹',p:'zou'},{c:'喻',p:'yu'},{c:'柏',p:'bai'},{c:'水',p:'shui'},{c:'窦',p:'dou'},{c:'章',p:'zhang'},
+                    {c:'云',p:'yun'},{c:'苏',p:'su'},{c:'潘',p:'pan'},{c:'葛',p:'ge'},{c:'奚',p:'xi'},{c:'范',p:'fan'},{c:'彭',p:'peng'},{c:'郎',p:'lang'},
+                    {c:'鲁',p:'lu'},{c:'韦',p:'wei'},{c:'昌',p:'chang'},{c:'马',p:'ma'},{c:'苗',p:'miao'},{c:'凤',p:'feng'},{c:'花',p:'hua'},{c:'方',p:'fang'},
+                    {c:'俞',p:'yu'},{c:'任',p:'ren'},{c:'袁',p:'yuan'},{c:'柳',p:'liu'},{c:'酆',p:'feng'},{c:'鲍',p:'bao'},{c:'史',p:'shi'},{c:'唐',p:'tang'},
+                    {c:'费',p:'fei'},{c:'廉',p:'lian'},{c:'岑',p:'cen'},{c:'薛',p:'xue'},{c:'雷',p:'lei'},{c:'贺',p:'he'},{c:'倪',p:'ni'},{c:'汤',p:'tang'},
+                    {c:'滕',p:'teng'},{c:'殷',p:'yin'},{c:'罗',p:'luo'},{c:'毕',p:'bi'},{c:'郝',p:'hao'},{c:'邬',p:'wu'},{c:'安',p:'an'},{c:'常',p:'chang'},
+                    {c:'乐',p:'le'},{c:'于',p:'yu'},{c:'时',p:'shi'},{c:'傅',p:'fu'},{c:'皮',p:'pi'},{c:'卞',p:'bian'},{c:'齐',p:'qi'},{c:'康',p:'kang'},
+                    {c:'伍',p:'wu'},{c:'余',p:'yu'},{c:'元',p:'yuan'},{c:'卜',p:'bu'},{c:'顾',p:'gu'},{c:'孟',p:'meng'},{c:'平',p:'ping'},{c:'黄',p:'huang'},
+                    {c:'和',p:'he'},{c:'穆',p:'mu'},{c:'萧',p:'xiao'},{c:'尹',p:'yin'},{c:'姚',p:'yao'},{c:'邵',p:'shao'},{c:'湛',p:'zhan'},{c:'汪',p:'wang'},
+                    {c:'祁',p:'qi'},{c:'毛',p:'mao'},{c:'禹',p:'yu'},{c:'狄',p:'di'},{c:'米',p:'mi'},{c:'贝',p:'bei'},{c:'明',p:'ming'},{c:'臧',p:'zang'},
+                    {c:'计',p:'ji'},{c:'伏',p:'fu'},{c:'成',p:'cheng'},{c:'戴',p:'dai'},{c:'谈',p:'tan'},{c:'宋',p:'song'},{c:'茅',p:'mao'},{c:'庞',p:'pang'},
+                    {c:'熊',p:'xiong'},{c:'纪',p:'ji'},{c:'舒',p:'shu'},{c:'屈',p:'qu'},{c:'项',p:'xiang'},{c:'祝',p:'zhu'},{c:'董',p:'dong'},{c:'梁',p:'liang'},
+                    {c:'杜',p:'du'},{c:'阮',p:'ruan'},{c:'蓝',p:'lan'},{c:'闵',p:'min'},{c:'席',p:'xi'},{c:'季',p:'ji'},{c:'麻',p:'ma'},{c:'强',p:'qiang'},
+                    {c:'贾',p:'jia'},{c:'路',p:'lu'},{c:'娄',p:'lou'},{c:'危',p:'wei'},{c:'江',p:'jiang'},{c:'童',p:'tong'},{c:'颜',p:'yan'},{c:'郭',p:'guo'},
+                    {c:'梅',p:'mei'},{c:'盛',p:'sheng'},{c:'林',p:'lin'},{c:'刁',p:'diao'},{c:'钟',p:'zhong'},{c:'徐',p:'xu'},{c:'邱',p:'qiu'},{c:'骆',p:'luo'},
+                    {c:'高',p:'gao'},{c:'夏',p:'xia'},{c:'蔡',p:'cai'},{c:'田',p:'tian'},{c:'樊',p:'fan'},{c:'胡',p:'hu'},{c:'凌',p:'ling'},{c:'霍',p:'huo'},
+                    {c:'虞',p:'yu'},{c:'万',p:'wan'},{c:'支',p:'zhi'},{c:'柯',p:'ke'},{c:'昝',p:'zan'},{c:'管',p:'guan'},{c:'卢',p:'lu'},{c:'莫',p:'mo'}
+                ]
+            },
+            qianziwen: {
+                title: '千字文',
+                chars: [
+                    {c:'天',p:'tian'},{c:'地',p:'di'},{c:'玄',p:'xuan'},{c:'黄',p:'huang'},{c:'宇',p:'yu'},{c:'宙',p:'zhou'},{c:'洪',p:'hong'},{c:'荒',p:'huang'},
+                    {c:'日',p:'ri'},{c:'月',p:'yue'},{c:'盈',p:'ying'},{c:'昃',p:'ze'},{c:'辰',p:'chen'},{c:'宿',p:'xiu'},{c:'列',p:'lie'},{c:'张',p:'zhang'},
+                    {c:'寒',p:'han'},{c:'来',p:'lai'},{c:'暑',p:'shu'},{c:'往',p:'wang'},{c:'秋',p:'qiu'},{c:'收',p:'shou'},{c:'冬',p:'dong'},{c:'藏',p:'cang'},
+                    {c:'闰',p:'run'},{c:'余',p:'yu'},{c:'成',p:'cheng'},{c:'岁',p:'sui'},{c:'律',p:'lv'},{c:'吕',p:'lv'},{c:'调',p:'tiao'},{c:'阳',p:'yang'},
+                    {c:'云',p:'yun'},{c:'腾',p:'teng'},{c:'致',p:'zhi'},{c:'雨',p:'yu'},{c:'露',p:'lu'},{c:'结',p:'jie'},{c:'为',p:'wei'},{c:'霜',p:'shuang'},
+                    {c:'金',p:'jin'},{c:'生',p:'sheng'},{c:'丽',p:'li'},{c:'水',p:'shui'},{c:'玉',p:'yu'},{c:'出',p:'chu'},{c:'昆',p:'kun'},{c:'冈',p:'gang'},
+                    {c:'剑',p:'jian'},{c:'号',p:'hao'},{c:'巨',p:'ju'},{c:'阙',p:'que'},{c:'珠',p:'zhu'},{c:'称',p:'cheng'},{c:'夜',p:'ye'},{c:'光',p:'guang'},
+                    {c:'果',p:'guo'},{c:'珍',p:'zhen'},{c:'李',p:'li'},{c:'柰',p:'nai'},{c:'菜',p:'cai'},{c:'重',p:'zhong'},{c:'芥',p:'jie'},{c:'姜',p:'jiang'},
+                    {c:'海',p:'hai'},{c:'咸',p:'xian'},{c:'河',p:'he'},{c:'淡',p:'dan'},{c:'鳞',p:'lin'},{c:'潜',p:'qian'},{c:'羽',p:'yu'},{c:'翔',p:'xiang'},
+                    {c:'龙',p:'long'},{c:'师',p:'shi'},{c:'火',p:'huo'},{c:'帝',p:'di'},{c:'鸟',p:'niao'},{c:'官',p:'guan'},{c:'人',p:'ren'},{c:'皇',p:'huang'},
+                    {c:'始',p:'shi'},{c:'制',p:'zhi'},{c:'文',p:'wen'},{c:'字',p:'zi'},{c:'乃',p:'nai'},{c:'服',p:'fu'},{c:'衣',p:'yi'},{c:'裳',p:'shang'},
+                    {c:'推',p:'tui'},{c:'位',p:'wei'},{c:'让',p:'rang'},{c:'国',p:'guo'},{c:'有',p:'you'},{c:'虞',p:'yu'},{c:'陶',p:'tao'},{c:'唐',p:'tang'},
+                    {c:'吊',p:'diao'},{c:'民',p:'min'},{c:'伐',p:'fa'},{c:'罪',p:'zui'},{c:'周',p:'zhou'},{c:'发',p:'fa'},{c:'殷',p:'yin'},{c:'汤',p:'tang'},
+                    {c:'坐',p:'zuo'},{c:'朝',p:'chao'},{c:'问',p:'wen'},{c:'道',p:'dao'},{c:'垂',p:'chui'},{c:'拱',p:'gong'},{c:'平',p:'ping'},{c:'章',p:'zhang'},
+                    {c:'爱',p:'ai'},{c:'育',p:'yu'},{c:'黎',p:'li'},{c:'首',p:'shou'},{c:'臣',p:'chen'},{c:'伏',p:'fu'},{c:'戎',p:'rong'},{c:'羌',p:'qiang'},
+                    {c:'遐',p:'xia'},{c:'迩',p:'er'},{c:'一',p:'yi'},{c:'体',p:'ti'},{c:'率',p:'shuai'},{c:'宾',p:'bin'},{c:'归',p:'gui'},{c:'王',p:'wang'},
+                    {c:'鸣',p:'ming'},{c:'凤',p:'feng'},{c:'在',p:'zai'},{c:'竹',p:'zhu'},{c:'白',p:'bai'},{c:'驹',p:'ju'},{c:'食',p:'shi'},{c:'场',p:'chang'},
+                    {c:'化',p:'hua'},{c:'被',p:'bei'},{c:'草',p:'cao'},{c:'木',p:'mu'},{c:'赖',p:'lai'},{c:'及',p:'ji'},{c:'万',p:'wan'},{c:'方',p:'fang'},
+                    {c:'盖',p:'gai'},{c:'此',p:'ci'},{c:'身',p:'shen'},{c:'发',p:'fa'},{c:'四',p:'si'},{c:'大',p:'da'},{c:'五',p:'wu'},{c:'常',p:'chang'},
+                    {c:'恭',p:'gong'},{c:'惟',p:'wei'},{c:'鞠',p:'ju'},{c:'养',p:'yang'},{c:'岂',p:'qi'},{c:'敢',p:'gan'},{c:'毁',p:'hui'},{c:'伤',p:'shang'}
+                ]
+            }
+        };
+
+        let currentClassic = null;
+        let currentIndex = 0;
+        let startTime = null;
+        let timerInterval = null;
+        let showPinyin = true;
+
+        // 初始化静音按钮状态
+        function updateMuteBtn() {
+            const btn = document.getElementById('muteBtn');
+            if (btn) {
+                btn.innerHTML = `音效: ${Sound.muted ? '关闭' : '开启'}`;
+                btn.className = `btn ${Sound.muted ? 'btn-danger' : 'btn-secondary'}`;
+            }
+        }
+        updateMuteBtn();
+
+        function startPractice(type) {
+            currentClassic = classics[type];
+            currentIndex = 0;
+            startTime = Date.now();
+            document.getElementById('selectScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            renderText();
+            startTimer();
+            document.getElementById('inputBox').focus();
+        }
+
+        function renderText() {
+            const display = document.getElementById('textDisplay');
+            display.innerHTML = currentClassic.chars.map((char, i) => {
+                let className = i < currentIndex ? 'char-done' : (i === currentIndex ? 'char-current' : 'char-pending');
+                let pinyinHtml = showPinyin && i >= currentIndex ? `<span class="pinyin-hint">${char.p}</span>` : '<span class="pinyin-hint" style="visibility:hidden;">-</span>';
+                return `<span class="char-wrapper" id="char-${i}">${pinyinHtml}<span class="${className}">${char.c}</span></span>`;
+            }).join('');
+
+            // 自动滚动到当前字符
+            if (currentIndex < currentClassic.chars.length) {
+                const currentChar = document.getElementById(`char-${currentIndex}`);
+                if (currentChar) {
+                    currentChar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+
+            updateStats();
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(updateStats, 1000);
+        }
+
+        function updateStats() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('time').textContent = `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+            
+            const speed = elapsed > 0 ? Math.round((currentIndex / elapsed) * 60) : 0;
+            document.getElementById('speed').textContent = speed;
+            document.getElementById('progress').textContent = `${currentIndex}/${currentClassic.chars.length}`;
+        }
+
+        document.getElementById('inputBox').addEventListener('compositionend', function(e) {
+            const input = (e.data || e.target.value.trim())[0];
+            if (input === currentClassic.chars[currentIndex].c) {
+                Sound.playCorrect();
+                currentIndex++;
+
+                if (currentIndex >= currentClassic.chars.length) {
+                    clearInterval(timerInterval);
+                    Sound.playComplete();
+
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    const speed = Math.round((currentIndex / elapsed) * 60);
+
+                    // 保存练习记录
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    if (studentInfo.id) {
+                        submitPractice({
+                            student_id: studentInfo.id,
+                            mode: 'classics-' + (currentClassic.title === '百家姓' ? 'baijiaxing' : 'qianziwen'),
+                            score: speed,
+                            duration: elapsed,
+                            extra_data: { type: currentClassic.title, chars: currentIndex }
+                        }).catch(err => console.error('保存记录失败:', err));
+                    }
+
+                    alert(`🎉 完成！用时：${document.getElementById('time').textContent}\n速度：${speed} 字/分钟`);
+                    backToSelect();
+                } else {
+                    renderText();
+                }
+            } else {
+                Sound.playError();
+            }
+            setTimeout(() => e.target.value = '', 200);
+        });
+
+        document.getElementById('showPinyin').addEventListener('change', function(e) {
+            showPinyin = e.target.checked;
+            renderText();
+        });
+
+        function backToSelect() {
+            clearInterval(timerInterval);
+            document.getElementById('selectScreen').style.display = 'block';
+            document.getElementById('gameScreen').style.display = 'none';
+            currentClassic = null;
+            currentIndex = 0;
+        }
+    </script>
+</body>
+</html>

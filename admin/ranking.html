@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优秀学生排行榜</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body { background: #f0f4f8; display: block; padding: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .admin-nav { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-nav a { color: white; text-decoration: none; margin: 0 15px; transition: opacity 0.3s; }
+        .admin-nav a:hover { opacity: 0.8; }
+        .admin-container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        .section { background: white; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-title { font-size: 20px; font-weight: 600; color: #374151; }
+        .filter-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .filter-tabs button { padding: 8px 16px; border: none; background: #f3f4f6; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
+        .filter-tabs button.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .rank-list { display: grid; gap: 12px; }
+        .rank-item { display: flex; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px; transition: all 0.3s; }
+        .rank-item:hover { background: #f3f4f6; }
+        .rank-number { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border-radius: 50%; margin-right: 15px; }
+        .rank-1 { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #fff; }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%); color: #fff; }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32 0%, #e8a87c 100%); color: #fff; }
+        .rank-other { background: #e5e7eb; color: #6b7280; }
+        .rank-info { flex: 1; display: grid; grid-template-columns: 2fr 2fr 1fr 1fr 1fr; gap: 15px; align-items: center; }
+        .rank-name { font-weight: 600; color: #111827; }
+        .rank-class { color: #6b7280; font-size: 14px; }
+        .rank-score { font-weight: 600; color: #667eea; }
+        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .class-card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 20px; }
+        .class-card-title { font-weight: 600; color: #374151; margin-bottom: 15px; font-size: 16px; }
+        .mini-rank { display: flex; align-items: center; padding: 10px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px; }
+        .mini-rank-number { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 50%; margin-right: 10px; }
+        .mini-rank-info { flex: 1; font-size: 14px; }
+        
+        /* Tab 样式 */
+        .main-tabs { display: flex; gap: 5px; margin-bottom: 25px; border-bottom: 2px solid #e5e7eb; }
+        .main-tab { padding: 12px 24px; background: none; border: none; cursor: pointer; font-size: 16px; font-weight: 500; color: #6b7280; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all 0.3s; }
+        .main-tab:hover { color: #374151; }
+        .main-tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 手动标记列表样式 */
+        .manual-list { display: grid; gap: 12px; }
+        .manual-item { display: flex; align-items: center; padding: 15px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #667eea; }
+        .manual-item:hover { background: #f3f4f6; }
+        .manual-info { flex: 1; display: grid; grid-template-columns: 1fr 2fr 1fr 1fr 2fr; gap: 15px; align-items: center; }
+        .manual-badge { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #667eea; color: white; border-radius: 50%; font-size: 14px; font-weight: bold; margin-right: 15px; }
+        .manual-reason { font-size: 12px; color: #999; }
+        .manual-date { font-size: 12px; color: #999; }
+        .delete-btn { padding: 6px 12px; background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .delete-btn:hover { background: #fecaca; }
+        
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="admin-nav">
+        <div><strong>📊 谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="test-records.html">测试记录</a>
+            <a href="practice-records.html">练习记录</a>
+            <a href="classes.html">班级管理</a>
+            <a href="ranking.html">优秀学生</a>
+            <a href="texts.html">文本库</a>
+            <a href="test-code.html">测试验证码</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <!-- 主 Tab 导航 -->
+        <div class="main-tabs">
+            <button class="main-tab active" onclick="switchMainTab('system', this)">系统排名</button>
+            <button class="main-tab" onclick="switchMainTab('manual', this)">手动标记 ⭐</button>
+        </div>
+
+        <!-- 系统排名 Tab 内容 -->
+        <div id="systemTab" class="tab-content active">
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">🏆 全年级优秀学生排行榜</h2>
+                    <div class="filter-tabs">
+                        <button class="active" onclick="changeOrder('comprehensive')">综合排名</button>
+                        <button onclick="changeOrder('speed')">速度排名</button>
+                        <button onclick="changeOrder('accuracy')">准确率排名</button>
+                    </div>
+                </div>
+                <div class="rank-list" id="schoolRanking"></div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">🎓 各班级优秀学生（前3名）</h2>
+                    <button class="btn btn-primary" onclick="exportRanking()">导出排行榜</button>
+                </div>
+                <div class="class-grid" id="classRanking"></div>
+            </div>
+        </div>
+
+        <!-- 手动标记 Tab 内容 -->
+        <div id="manualTab" class="tab-content">
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">⭐ 手动标记的优秀学生</h2>
+                    <button class="btn btn-primary" onclick="loadManualList()">刷新</button>
+                </div>
+                <div class="manual-list" id="manualRanking"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        let currentOrder = 'comprehensive';
+        let schoolData = [];
+        let classData = [];
+
+        // 切换主 Tab
+        function switchMainTab(tabName, btn) {
+            document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            if (tabName === 'manual') {
+                loadManualList();
+            }
+        }
+
+        // 加载手动标记列表
+        async function loadManualList() {
+            const container = document.getElementById('manualRanking');
+            container.innerHTML = '<div class="empty-state">加载中...</div>';
+            
+            try {
+                const response = await fetch('/api/ranking/manual-excellent-list');
+                const { list } = await response.json();
+                
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="empty-state">暂无手动标记的学生<br><br>在"练习记录"页面点击学校名称可以添加学生到此处</div>';
+                    return;
+                }
+                
+                container.innerHTML = list.map((item, index) => `
+                    <div class="manual-item">
+                        <div class="manual-badge">${index + 1}</div>
+                        <div class="manual-info">
+                            <div class="rank-name">${item.name}</div>
+                            <div class="rank-class">${item.class}</div>
+                            <div class="rank-score">${item.score} 分</div>
+                            <div class="manual-reason">${item.ranking_name || item.reason || '-'}</div>
+                            <div class="manual-date">${new Date(item.added_at).toLocaleString('zh-CN')}</div>
+                        </div>
+                        <button class="delete-btn" onclick="deleteManualItem(${item.id})">删除</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载失败:', error);
+                container.innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        // 删除手动标记
+        async function deleteManualItem(id) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+            
+            try {
+                const response = await fetch(`/api/ranking/manual-excellent/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadManualList();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (error) {
+                alert('删除失败');
+            }
+        }
+
+        async function loadSchoolRanking(orderBy = 'comprehensive') {
+            const response = await fetch(`/api/ranking/school?limit=10&orderBy=${orderBy}`);
+            const { ranking } = await response.json();
+            schoolData = ranking;
+
+            const container = document.getElementById('schoolRanking');
+            container.innerHTML = ranking.map((s, i) => `
+                <div class="rank-item">
+                    <div class="rank-number ${i < 3 ? 'rank-' + (i + 1) : 'rank-other'}">${i + 1}</div>
+                    <div class="rank-info">
+                        <div>
+                            <div class="rank-name">${s.name}</div>
+                            <div class="rank-class">${s.student_no}</div>
+                        </div>
+                        <div class="rank-class">${s.class}</div>
+                        <div class="rank-score">${s.avg_speed} 字/分</div>
+                        <div class="rank-score">${s.avg_accuracy}%</div>
+                        <div class="rank-score">综合: ${s.comprehensive_score}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadClassRanking() {
+            const response = await fetch('/api/ranking/classes?limit=3');
+            const { classes } = await response.json();
+            classData = classes;
+
+            const container = document.getElementById('classRanking');
+            container.innerHTML = classes.map(c => `
+                <div class="class-card">
+                    <div class="class-card-title">${c.class}</div>
+                    ${c.students.map((s, i) => `
+                        <div class="mini-rank">
+                            <div class="mini-rank-number ${i < 3 ? 'rank-' + (i + 1) : 'rank-other'}">${i + 1}</div>
+                            <div class="mini-rank-info">
+                                <div style="font-weight: 600;">${s.name}</div>
+                                <div style="color: #6b7280; font-size: 13px;">速度: ${s.avg_speed} | 准确率: ${s.avg_accuracy}% | 综合: ${s.comprehensive_score}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+        }
+
+        function changeOrder(order) {
+            currentOrder = order;
+            document.querySelectorAll('.filter-tabs button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            loadSchoolRanking(order);
+        }
+
+        function exportRanking() {
+            const schoolSheet = schoolData.map((s, i) => ({
+                '排名': i + 1,
+                '姓名': s.name,
+                '学号': s.student_no,
+                '班级': s.class,
+                '平均速度': s.avg_speed,
+                '平均准确率': s.avg_accuracy,
+                '综合得分': s.comprehensive_score
+            }));
+
+            const classSheet = [];
+            classData.forEach(c => {
+                c.students.forEach((s, i) => {
+                    classSheet.push({
+                        '班级': c.class,
+                        '排名': i + 1,
+                        '姓名': s.name,
+                        '学号': s.student_no,
+                        '平均速度': s.avg_speed,
+                        '平均准确率': s.avg_accuracy,
+                        '综合得分': s.comprehensive_score
+                    });
+                });
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws1 = XLSX.utils.json_to_sheet(schoolSheet);
+            const ws2 = XLSX.utils.json_to_sheet(classSheet);
+            XLSX.utils.book_append_sheet(wb, ws1, '全年级排行榜');
+            XLSX.utils.book_append_sheet(wb, ws2, '各班级排行榜');
+            XLSX.writeFile(wb, '优秀学生排行榜.xlsx');
+        }
+
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+
+        window.switchMainTab = switchMainTab;
+        window.loadManualList = loadManualList;
+        window.deleteManualItem = deleteManualItem;
+        window.changeOrder = changeOrder;
+        window.exportRanking = exportRanking;
+        window.logout = logout;
+
+        loadSchoolRanking();
+        loadClassRanking();
+    </script>
+</body>
+</html>

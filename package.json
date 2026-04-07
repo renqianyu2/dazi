@@ -1,0 +1,25 @@
+{
+  "name": "pinyin-typing-test",
+  "version": "1.0.0",
+  "description": "拼音打字速度测试系统",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "init-db": "node backend/database.js"
+  },
+  "keywords": [
+    "typing",
+    "pinyin",
+    "education"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "pinyin-pro": "^3.19.6",
+    "socket.io": "^4.8.3",
+    "sqlite3": "^5.1.6"
+  }
+}
