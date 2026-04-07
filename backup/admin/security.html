@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全管理 - 谷山学校管理后台</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body { background: #f0f4f8; display: block; padding: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .admin-nav { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-nav a { color: white; text-decoration: none; margin: 0 15px; transition: opacity 0.3s; }
+        .admin-nav a:hover { opacity: 0.8; }
+        .admin-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        
+        /* 标签页样式 */
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); flex-wrap: wrap; }
+        .tab { padding: 10px 20px; border: none; background: transparent; color: #6b7280; cursor: pointer; border-radius: 8px; font-size: 14px; transition: all 0.3s; }
+        .tab:hover { background: #f3f4f6; }
+        .tab.active { background: #667eea; color: white; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 卡片样式 */
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .card h3 { margin: 0 0 15px 0; color: #374151; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        
+        /* 注册码区域 */
+        .reg-code-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+        .reg-code-box .code { font-size: 48px; font-weight: bold; letter-spacing: 8px; margin: 15px 0; font-family: monospace; }
+        .reg-code-box .expire { font-size: 14px; opacity: 0.9; }
+        .reg-code-box .timer { font-size: 20px; margin-top: 10px; }
+        .btn-generate { padding: 12px 30px; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        .btn-generate:hover { transform: scale(1.05); }
+        .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        /* 表单样式 */
+        .form-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #374151; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; }
+        
+        /* 按钮样式 */
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-warning:hover { background: #d97706; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-info { background: #3b82f6; color: white; }
+        .btn-info:hover { background: #2563eb; }
+        .btn-small { padding: 6px 12px; font-size: 12px; }
+        
+        /* 表格样式 */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        th:hover { background: #e5e7eb; }
+        tr:hover { background: #f9fafb; }
+        
+        /* 排序图标 */
+        .sort-icon { margin-left: 4px; font-size: 12px; color: #9ca3af; }
+        th.sorted .sort-icon { color: #667eea; }
+        th.sorted-asc .sort-icon::after { content: "↑"; }
+        th.sorted-desc .sort-icon::after { content: "↓"; }
+        
+        /* 统计卡片 */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+        .stat-card .value { font-size: 32px; font-weight: bold; color: #667eea; }
+        .stat-card .label { font-size: 14px; color: #6b7280; margin-top: 5px; }
+        
+        /* 提示信息 */
+        .alert { padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; }
+        .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #34d399; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
+        .alert-info { background: #dbeafe; color: #1e40af; border: 1px solid #60a5fa; }
+        
+        /* 标签 */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge-success { background: #d1fae5; color: #065f46; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        
+        /* 空状态 */
+        .empty-state { text-align: center; padding: 40px; color: #9ca3af; }
+        
+        /* 模态框 */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; max-width: 500px; margin: 100px auto; padding: 30px; border-radius: 12px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        
+        /* 开关滑块样式 */
+        input:checked + .toggle-slider { background-color: #10b981 !important; }
+        input:checked + .toggle-slider:before { transform: translateX(24px); }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-nav">
+        <div><strong>谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="classes.html">班级管理</a>
+            <a href="security.html" style="color: #fbbf24; font-weight: bold;">🔒 安全管理</a>
+            <a href="students-roster.html">学生名册</a>
+            <a href="texts.html">文本库</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <h2 style="margin-bottom: 20px;">安全管理中心</h2>
+        
+        <!-- 标签页导航 -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('regcode')">📝 注册码管理</button>
+            <button class="tab" onclick="switchTab('teachers')">👨‍🏫 教师管理</button>
+            <button class="tab" onclick="switchTab('classes')">🏫 班级管理</button>
+            <button class="tab" onclick="switchTab('devices')">📱 设备管理</button>
+            <button class="tab" onclick="switchTab('logs')">📋 操作日志</button>
+        </div>
+        
+        <!-- 注册码管理 -->
+        <div id="tab-regcode" class="tab-content active">
+            <div class="reg-code-box">
+                <div>当前课堂注册码</div>
+                <div class="code" id="currentCode">------</div>
+                <div class="expire" id="expireTime">有效期: --</div>
+                <div class="timer" id="countdown"></div>
+            </div>
+            
+            <div class="card">
+                <h3>生成新注册码</h3>
+                <p style="color: #6b7280; margin-bottom: 15px;">点击下方按钮生成新的课堂注册码，有效期为5分钟。每个注册码只能使用一次。</p>
+                <button class="btn-generate" onclick="generateRegCode()">🔄 生成新注册码</button>
+            </div>
+            
+            <div class="card">
+                <h3>🔧 安全设置</h3>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background: #f9fafb; border-radius: 8px;">
+                    <div>
+                        <strong>生日验证</strong>
+                        <p style="color: #6b7280; font-size: 13px; margin: 5px 0 0 0;">开启后，学生登录时需要验证生日。关闭时无需生日即可登录。</p>
+                    </div>
+                    <label style="position: relative; display: inline-block; width: 52px; height: 28px; margin-left: 20px;">
+                        <input type="checkbox" id="birthdayToggle" onchange="toggleBirthdayVerification()" style="opacity: 0; width: 0; height: 0;">
+                        <span class="toggle-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 28px;">
+                        </span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>注册码说明</h3>
+                <ul style="color: #6b7280; line-height: 1.8;">
+                    <li>注册码用于学生首次注册时验证身份</li>
+                    <li>每个注册码有效期为5分钟，过期后需要重新生成</li>
+                    <li>同一设备在10分钟内只能成功注册一次</li>
+                    <li>建议每节课开始前生成新的注册码</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 教师管理 -->
+        <div id="tab-teachers" class="tab-content">
+            <div class="card">
+                <h3>添加新教师</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>教师姓名</label>
+                        <input type="text" id="newTeacherName" placeholder="如：张老师">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addTeacher()">➕ 添加教师</button>
+                <div id="teacherMsg" style="margin-top: 10px;"></div>
+            </div>
+            
+            <div class="card">
+                <h3>教师列表 <span id="teacherCount" style="font-weight: normal; color: #6b7280; font-size: 14px;"></span></h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">序号</th>
+                            <th>教师姓名</th>
+                            <th>任教班级</th>
+                            <th style="width: 120px;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherList"></tbody>
+                </table>
+                <div id="teacherEmpty" class="empty-state" style="display: none;">暂无教师，请添加</div>
+            </div>
+        </div>
+        
+        <!-- 班级管理 -->
+        <div id="tab-classes" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="value" id="totalClasses">0</div>
+                    <div class="label">班级数量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="totalStudentsInClasses">0</div>
+                    <div class="label">学生总数</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>班级列表</h3>
+                <div style="margin-bottom: 15px;">
+                    <select id="filterSchool" onchange="filterClasses()" style="padding: 8px; margin-right: 10px;">
+                        <option value="">全部学校</option>
+                        <option value="谷山学校">谷山学校</option>
+                        <option value="中华路小学">中华路小学</option>
+                    </select>
+                    <select id="filterGrade" onchange="filterClasses()" style="padding: 8px;">
+                        <option value="">全部年级</option>
+                        <option value="1">一年级</option>
+                        <option value="2">二年级</option>
+                        <option value="3">三年级</option>
+                        <option value="4">四年级</option>
+                        <option value="5">五年级</option>
+                        <option value="6">六年级</option>
+                        <option value="7">七年级</option>
+                        <option value="8">八年级</option>
+                    </select>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th onclick="sortClasses('school')" style="cursor:pointer;">学校 <span class="sort-icon" data-sort="school">⇅</span></th>
+                            <th onclick="sortClasses('grade')" style="cursor:pointer;">年级 <span class="sort-icon" data-sort="grade">⇅</span></th>
+                            <th onclick="sortClasses('class_number')" style="cursor:pointer;">班级 <span class="sort-icon" data-sort="class_number">⇅</span></th>
+                            <th onclick="sortClasses('teachers')" style="cursor:pointer;">班主任 <span class="sort-icon" data-sort="teachers">⇅</span></th>
+                            <th onclick="sortClasses('student_count')" style="cursor:pointer;">学生人数 <span class="sort-icon" data-sort="student_count">⇅</span></th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="classList"></tbody>
+                </table>
+                <div id="classEmpty" class="empty-state" style="display: none;">暂无班级数据</div>
+            </div>
+        </div>
+        
+        <!-- 设备管理 -->
+        <div id="tab-devices" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="value" id="totalDevices">0</div>
+                    <div class="label">绑定设备数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="activeToday">0</div>
+                    <div class="label">今日活跃</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>设备绑定列表</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>学生姓名</th>
+                            <th>学号</th>
+                            <th>班级</th>
+                            <th>设备ID</th>
+                            <th>最后操作</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceList"></tbody>
+                </table>
+                <div id="deviceEmpty" class="empty-state" style="display: none;">暂无设备绑定记录</div>
+            </div>
+        </div>
+        
+        <!-- 操作日志 -->
+        <div id="tab-logs" class="tab-content">
+            <div class="card">
+                <h3>操作日志</h3>
+                <div style="margin-bottom: 15px;">
+                    <select id="logType" onchange="loadLogs()" style="padding: 8px; margin-right: 10px;">
+                        <option value="">全部类型</option>
+                        <option value="register">注册</option>
+                        <option value="login">登录</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadLogs()">🔄 刷新</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>类型</th>
+                            <th>设备ID</th>
+                            <th>学生ID</th>
+                            <th>IP地址</th>
+                            <th>结果</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logList"></tbody>
+                </table>
+                <div id="logEmpty" class="empty-state" style="display: none;">暂无操作日志</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分配教师模态框（班级分配教师） -->
+    <div id="assignTeacherModal" class="modal">
+        <div class="modal-content">
+            <h3>分配班主任</h3>
+            <div class="form-group">
+                <label>选择教师</label>
+                <select id="assignTeacherSelect">
+                    <option value="">请选择教师</option>
+                </select>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="confirmAssignTeacher()">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 班级学生查看模态框 -->
+    <div id="classStudentsModal" class="modal">
+        <div class="modal-content" style="max-width: 700px; max-height: 80vh; overflow-y: auto;">
+            <h3 id="classStudentsTitle">班级学生列表</h3>
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="studentSearchInput" placeholder="搜索学生姓名或学号..." 
+                       style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px;"
+                       onkeyup="filterClassStudents()">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>姓名</th>
+                        <th>学号</th>
+                        <th>授课教师</th>
+                        <th>设备绑定</th>
+                    </tr>
+                </thead>
+                <tbody id="classStudentsList"></tbody>
+            </table>
+            <div id="noStudentsInClass" class="empty-state" style="display: none;">该班级暂无学生</div>
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="closeClassStudentsModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教师详情/编辑模态框 -->
+    <div id="teacherDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3>教师管理</h3>
+            <div class="form-group">
+                <label>教师姓名</label>
+                <input type="text" id="editTeacherName" placeholder="如：张老师">
+            </div>
+            
+            <div class="form-group">
+                <label>任教班级 <span style="font-weight: normal; color: #6b7280; font-size: 12px;">（点击班级可移除关联）</span></label>
+                <div id="teacherClassesList" style="max-height: 200px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px;">
+                    <!-- 班级列表将通过 JS 填充 -->
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>添加班级关联</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="addClassSchool" style="flex: 1;">
+                        <option value="">选择学校</option>
+                        <option value="谷山学校">谷山学校</option>
+                        <option value="中华路小学">中华路小学</option>
+                    </select>
+                    <select id="addClassGrade" style="flex: 1;">
+                        <option value="">选择年级</option>
+                        <option value="1">一年级</option>
+                        <option value="2">二年级</option>
+                        <option value="3">三年级</option>
+                        <option value="4">四年级</option>
+                        <option value="5">五年级</option>
+                        <option value="6">六年级</option>
+                        <option value="7">七年级</option>
+                        <option value="8">八年级</option>
+                    </select>
+                    <select id="addClassNumber" style="flex: 1;">
+                        <option value="">选择班级</option>
+                        <option value="1">1班</option>
+                        <option value="2">2班</option>
+                        <option value="3">3班</option>
+                        <option value="4">4班</option>
+                        <option value="5">5班</option>
+                        <option value="6">6班</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addClassToTeacher()">添加</button>
+                </div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeTeacherModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTeacher()">保存修改</button>
+            </div>
+        </div>
+    </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        let countdownTimer = null;
+        let allClasses = [];
+        let currentAssignClass = null;
+        let currentEditTeacher = null;
+        let classSortField = 'school';  // 当前排序字段
+        let classSortOrder = 'asc';     // 排序方向: asc 或 desc
+        const gradeLabels = ['', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '七年级', '八年级'];
+        
+        // 班级排序功能
+        function sortClasses(field) {
+            // 如果点击相同字段，则切换排序方向
+            if (classSortField === field) {
+                classSortOrder = classSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                classSortField = field;
+                classSortOrder = 'asc';
+            }
+            
+            // 更新表头样式
+            document.querySelectorAll('#tab-classes th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.getAttribute('onclick') && th.getAttribute('onclick').includes(field)) {
+                    th.classList.add(classSortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
+            
+            // 重新渲染表格
+            filterClasses();
+        }
+        
+        // 切换标签页
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            if (tabId === 'regcode') loadRegCode();
+            if (tabId === 'teachers') loadTeachers();
+            if (tabId === 'classes') loadClasses();
+            if (tabId === 'devices') loadDevices();
+            if (tabId === 'logs') loadLogs();
+        }
+        
+        // ==================== 注册码管理 ====================
+        async function loadRegCode() {
+            try {
+                const res = await fetch('/api/admin/reg-code-status');
+                const data = await res.json();
+                
+                if (data.hasCode) {
+                    document.getElementById('currentCode').textContent = data.code;
+                    const expireDate = new Date(data.expiresAt);
+                    document.getElementById('expireTime').textContent = '有效期至: ' + expireDate.toLocaleTimeString();
+                    startCountdown(expireDate);
+                } else {
+                    document.getElementById('currentCode').textContent = '暂无注册码';
+                    document.getElementById('expireTime').textContent = '请点击下方按钮生成';
+                    document.getElementById('countdown').textContent = '';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        function startCountdown(expireDate) {
+            if (countdownTimer) clearInterval(countdownTimer);
+            
+            countdownTimer = setInterval(() => {
+                const now = new Date();
+                const remaining = Math.max(0, Math.floor((expireDate - now) / 1000));
+                
+                if (remaining <= 0) {
+                    clearInterval(countdownTimer);
+                    document.getElementById('countdown').textContent = '已过期';
+                    document.getElementById('currentCode').textContent = '已过期';
+                    return;
+                }
+                
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                document.getElementById('countdown').textContent = `剩余: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        async function generateRegCode() {
+            try {
+                const res = await fetch('/api/admin/generate-reg-code', { method: 'POST' });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ 注册码生成成功！\n\n注册码: ' + data.code + '\n有效期: ' + data.expireMinutes + '分钟\n\n请告知学生使用此验证码注册。');
+                    loadRegCode();
+                } else {
+                    alert(data.error || '生成失败');
+                }
+            } catch (err) {
+                alert('生成失败: ' + err.message);
+            }
+        }
+        
+        // ==================== 教师管理 ====================
+        async function loadTeachers() {
+            try {
+                const res = await fetch('/api/auth/teachers');
+                const data = await res.json();
+                
+                const teachers = data.success ? data.teachers : [];
+                
+                document.getElementById('teacherCount').textContent = `(${teachers.length}人)`;
+                
+                const tbody = document.getElementById('teacherList');
+                const teacherEmpty = document.getElementById('teacherEmpty');
+                
+                if (teachers.length === 0) {
+                    tbody.innerHTML = '';
+                    teacherEmpty.style.display = 'block';
+                    return;
+                }
+                
+                teacherEmpty.style.display = 'none';
+                tbody.innerHTML = teachers.map((t, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${t.name}</strong></td>
+                        <td>${t.classes.length > 0 
+                            ? t.classes.map(c => `${c.school}${gradeLabels[c.grade]}${c.class_number}班`).join(', ') 
+                            : '<span style="color:#9ca3af;">未分配</span>'}</td>
+                        <td>
+                            <button class="btn btn-primary btn-small" onclick="editTeacher(${t.id}, '${t.name}', ${JSON.stringify(t.classes).replace(/'/g, "&#39;")})">编辑</button>
+                            <button class="btn btn-danger btn-small" onclick="removeTeacher(${t.id}, '${t.name}')">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function addTeacher() {
+            const name = document.getElementById('newTeacherName').value.trim();
+            
+            if (!name) {
+                showMsg('teacherMsg', '请输入教师姓名', 'error');
+                return;
+            }
+            
+            // 验证格式（自动添加"老师"后缀）
+            let cleanName = name.replace(/老师$/, '');
+            if (!/^[\u4e00-\u9fa5]{2,4}$/.test(cleanName)) {
+                showMsg('teacherMsg', '教师姓名必须为2-4个中文字符', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/teacher', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: cleanName + '老师' })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    showMsg('teacherMsg', '✅ 教师添加成功！', 'success');
+                    document.getElementById('newTeacherName').value = '';
+                    loadTeachers();
+                } else {
+                    showMsg('teacherMsg', data.error || '添加失败', 'error');
+                }
+            } catch (err) {
+                showMsg('teacherMsg', '添加失败: ' + err.message, 'error');
+            }
+        }
+        
+        function editTeacher(id, name, classes) {
+            currentEditTeacher = { id, name, classes: classes || [] };
+            document.getElementById('editTeacherName').value = name;
+            renderTeacherClasses(classes || []);
+            document.getElementById('teacherDetailModal').style.display = 'block';
+        }
+        
+        function renderTeacherClasses(classes) {
+            const container = document.getElementById('teacherClassesList');
+            if (classes.length === 0) {
+                container.innerHTML = '<div style="color: #9ca3af; text-align: center; padding: 20px;">暂无关联班级</div>';
+                return;
+            }
+            
+            container.innerHTML = classes.map(c => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #f0f0f0;">
+                    <span>${c.school} - ${c.class_name}</span>
+                    <button class="btn btn-danger btn-small" onclick="removeClassFromTeacher(${c.grade}, ${c.class_number}, '${c.school}')">移除</button>
+                </div>
+            `).join('');
+        }
+        
+        async function addClassToTeacher() {
+            if (!currentEditTeacher) return;
+            
+            const school = document.getElementById('addClassSchool').value;
+            const grade = parseInt(document.getElementById('addClassGrade').value);
+            const class_number = parseInt(document.getElementById('addClassNumber').value);
+            
+            if (!school || !grade || !class_number) {
+                alert('请选择学校、年级和班级');
+                return;
+            }
+            
+            // 检查是否已存在
+            const exists = currentEditTeacher.classes.some(c => 
+                c.school === school && c.grade === grade && c.class_number === class_number
+            );
+            if (exists) {
+                alert('该班级关联已存在');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/auth/teacher/${currentEditTeacher.id}/classes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ school, grade, class_number })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // 重新加载教师数据
+                    const teachersRes = await fetch('/api/auth/teachers');
+                    const teachersData = await teachersRes.json();
+                    const teacher = teachersData.teachers.find(t => t.id === currentEditTeacher.id);
+                    if (teacher) {
+                        currentEditTeacher = teacher;
+                        renderTeacherClasses(teacher.classes);
+                    }
+                    alert('✅ 班级关联添加成功！');
+                } else {
+                    alert(data.error || '添加失败');
+                }
+            } catch (err) {
+                alert('添加失败: ' + err.message);
+            }
+        }
+        
+        async function removeClassFromTeacher(grade, class_number, school) {
+            if (!confirm('确定移除该班级关联吗？')) return;
+            
+            try {
+                const res = await fetch(`/api/auth/teacher/${currentEditTeacher.id}/classes`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ school, grade, class_number })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    // 重新加载教师数据
+                    const teachersRes = await fetch('/api/auth/teachers');
+                    const teachersData = await teachersRes.json();
+                    const teacher = teachersData.teachers.find(t => t.id === currentEditTeacher.id);
+                    if (teacher) {
+                        currentEditTeacher = teacher;
+                        renderTeacherClasses(teacher.classes);
+                    }
+                } else {
+                    alert(data.error || '移除失败');
+                }
+            } catch (err) {
+                alert('移除失败: ' + err.message);
+            }
+        }
+        
+        async function saveTeacher() {
+            if (!currentEditTeacher) return;
+            
+            const newName = document.getElementById('editTeacherName').value.trim();
+            
+            if (!newName) {
+                alert('请输入教师姓名');
+                return;
+            }
+            
+            // 验证格式
+            let cleanName = newName.replace(/老师$/, '');
+            if (!/^[\u4e00-\u9fa5]{2,4}$/.test(cleanName)) {
+                alert('教师姓名必须为2-4个中文字符');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/auth/teacher/${currentEditTeacher.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: cleanName + '老师' })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ 教师信息已保存！\n' + data.message);
+                    closeTeacherModal();
+                    loadTeachers();
+                } else {
+                    alert(data.error || '保存失败');
+                }
+            } catch (err) {
+                alert('保存失败: ' + err.message);
+            }
+        }
+        
+        function closeTeacherModal() {
+            document.getElementById('teacherDetailModal').style.display = 'none';
+            currentEditTeacher = null;
+        }
+        
+        async function removeTeacher(id, name) {
+            if (!confirm(`确定删除教师 "${name}" 吗？\n\n这将同时移除该教师所有班级关联。`)) return;
+            
+            try {
+                const res = await fetch(`/api/auth/teacher/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ 教师删除成功！');
+                    loadTeachers();
+                } else {
+                    alert(data.error || '删除失败');
+                }
+            } catch (err) {
+                alert('删除失败: ' + err.message);
+            }
+        }
+        
+        // ==================== 班级管理 ====================
+        async function loadClasses() {
+            try {
+                // 使用新的 API 获取带教师信息的班级列表
+                const res = await fetch('/api/auth/classes');
+                const data = await res.json();
+                
+                if (data.success && data.classes) {
+                    // 获取学生数据来计算班级人数
+                    const studentsRes = await fetch('/api/admin/students');
+                    const studentsData = await studentsRes.json();
+                    const students = studentsData.students || [];
+                    
+                    // 按班级分组学生
+                    const classStudentCount = {};
+                    students.forEach(s => {
+                        const key = `${s.school}-${s.grade}-${s.class_number}`;
+                        classStudentCount[key] = (classStudentCount[key] || 0) + 1;
+                    });
+                    
+                    // 合并数据
+                    allClasses = data.classes.map(c => ({
+                        school: c.school,
+                        grade: c.grade,
+                        class_number: c.class_number,
+                        class: c.class,
+                        teachers: c.teachers || [],
+                        student_count: classStudentCount[`${c.school}-${c.grade}-${c.class_number}`] || 0
+                    }));
+                } else {
+                    allClasses = [];
+                }
+                
+                filterClasses();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        function filterClasses() {
+            const filterSchool = document.getElementById('filterSchool').value;
+            const filterGrade = document.getElementById('filterGrade').value;
+            
+            let filtered = allClasses;
+            if (filterSchool) {
+                filtered = filtered.filter(c => c.school === filterSchool);
+            }
+            if (filterGrade) {
+                filtered = filtered.filter(c => c.grade === parseInt(filterGrade));
+            }
+            
+            // 排序
+            filtered.sort((a, b) => {
+                let valA, valB;
+                switch (classSortField) {
+                    case 'school':
+                        valA = a.school || '';
+                        valB = b.school || '';
+                        break;
+                    case 'grade':
+                        valA = a.grade || 0;
+                        valB = b.grade || 0;
+                        break;
+                    case 'class_number':
+                        valA = a.class_number || 0;
+                        valB = b.class_number || 0;
+                        break;
+                    case 'teachers':
+                        valA = (a.teachers && a.teachers[0]) || '';
+                        valB = (b.teachers && b.teachers[0]) || '';
+                        break;
+                    case 'student_count':
+                        valA = a.student_count || 0;
+                        valB = b.student_count || 0;
+                        break;
+                    default:
+                        return 0;
+                }
+                
+                if (typeof valA === 'string') {
+                    return classSortOrder === 'asc' 
+                        ? valA.localeCompare(valB, 'zh-CN') 
+                        : valB.localeCompare(valA, 'zh-CN');
+                } else {
+                    return classSortOrder === 'asc' ? valA - valB : valB - valA;
+                }
+            });
+            
+            // 更新排序图标状态
+            document.querySelectorAll('#tab-classes th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.getAttribute('onclick') && th.getAttribute('onclick').includes("'" + classSortField + "'")) {
+                    th.classList.add(classSortOrder === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
+            
+            // 统计
+            document.getElementById('totalClasses').textContent = filtered.length;
+            const totalStudents = filtered.reduce((sum, c) => sum + c.student_count, 0);
+            document.getElementById('totalStudentsInClasses').textContent = totalStudents;
+            
+            const tbody = document.getElementById('classList');
+            const classEmpty = document.getElementById('classEmpty');
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                classEmpty.style.display = 'block';
+                return;
+            }
+            
+            classEmpty.style.display = 'none';
+            tbody.innerHTML = filtered.map(c => `
+                <tr>
+                    <td>${c.school}</td>
+                    <td>${gradeLabels[c.grade]}</td>
+                    <td><strong>${c.class_number}班</strong></td>
+                    <td>${c.teachers.length > 0 ? c.teachers.join(', ') : '<span style="color:#9ca3af;">未分配</span>'}</td>
+                    <td>${c.student_count}人</td>
+                    <td>
+                        <button class="btn btn-info btn-small" onclick="viewClassStudents('${c.school}', ${c.grade}, ${c.class_number}, '${c.class}')">查看学生</button>
+                        <button class="btn btn-primary btn-small" onclick="openAssignTeacher('${c.school}', ${c.grade}, ${c.class_number})">管理教师</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteClass('${c.school}', ${c.grade}, ${c.class_number}, ${c.student_count})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // ==================== 班级学生查看 ====================
+        let currentClassStudents = [];
+        
+        function viewClassStudents(school, grade, classNumber, className) {
+            currentClassStudents = [];
+            document.getElementById('classStudentsTitle').textContent = `${className} - 学生列表`;
+            document.getElementById('studentSearchInput').value = '';
+            
+            // 加载该班级的学生
+            fetch('/api/admin/students')
+                .then(res => res.json())
+                .then(data => {
+                    const students = data.students || [];
+                    currentClassStudents = students.filter(s => 
+                        s.school === school && s.grade === grade && s.class_number === classNumber
+                    );
+                    renderClassStudents(currentClassStudents);
+                })
+                .catch(err => {
+                    console.error('加载学生失败:', err);
+                    alert('加载学生失败');
+                });
+            
+            document.getElementById('classStudentsModal').style.display = 'block';
+        }
+        
+        function renderClassStudents(students) {
+            const tbody = document.getElementById('classStudentsList');
+            const emptyMsg = document.getElementById('noStudentsInClass');
+            
+            if (students.length === 0) {
+                tbody.innerHTML = '';
+                emptyMsg.style.display = 'block';
+                return;
+            }
+            
+            emptyMsg.style.display = 'none';
+            tbody.innerHTML = students.map((s, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td><strong>${s.name}</strong></td>
+                    <td>${s.student_no}</td>
+                    <td>${s.teacher || '<span style="color:#9ca3af;">-</span>'}</td>
+                    <td>${s.device_id ? '<span style="color:#10b981;">已绑定</span>' : '<span style="color:#9ca3af;">未绑定</span>'}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function filterClassStudents() {
+            const keyword = document.getElementById('studentSearchInput').value.trim().toLowerCase();
+            
+            if (!keyword) {
+                renderClassStudents(currentClassStudents);
+                return;
+            }
+            
+            const filtered = currentClassStudents.filter(s => 
+                s.name.toLowerCase().includes(keyword) || 
+                (s.student_no && s.student_no.toLowerCase().includes(keyword))
+            );
+            renderClassStudents(filtered);
+        }
+        
+        function closeClassStudentsModal() {
+            document.getElementById('classStudentsModal').style.display = 'none';
+            currentClassStudents = [];
+        }
+        
+        function openAssignTeacher(school, grade, classNumber) {
+            currentAssignClass = { school, grade, classNumber };
+            
+            // 使用新的 API 获取可分配教师列表
+            fetch(`/api/auth/available-teachers?school=${encodeURIComponent(school)}&grade=${grade}&class_number=${classNumber}`)
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('assignTeacherSelect');
+                    
+                    if (data.success) {
+                        let options = '<option value="">请选择要添加的教师</option>';
+                        
+                        if (data.allTeachers) {
+                            data.allTeachers.forEach(t => {
+                                const isAssigned = data.assignedTeacherIds && data.assignedTeacherIds.includes(t.id);
+                                options += `<option value="${t.id}">${t.name}${isAssigned ? ' (已关联)' : ''}</option>`;
+                            });
+                        }
+                        select.innerHTML = options;
+                    }
+                });
+            
+            document.getElementById('assignTeacherModal').style.display = 'block';
+        }
+        
+        function closeModal() {
+            document.getElementById('assignTeacherModal').style.display = 'none';
+            currentAssignClass = null;
+        }
+        
+        async function confirmAssignTeacher() {
+            if (!currentAssignClass) return;
+            
+            const teacherId = document.getElementById('assignTeacherSelect').value;
+            const { school, grade, classNumber } = currentAssignClass;
+            
+            if (!teacherId) {
+                alert('请选择要分配的教师');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/auth/class/teacher', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        school, 
+                        grade, 
+                        class_number: classNumber,
+                        teacher_id: parseInt(teacherId)
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    closeModal();
+                    loadClasses();
+                    loadTeachers();
+                } else {
+                    alert(data.error || '分配失败');
+                }
+            } catch (err) {
+                alert('分配失败: ' + err.message);
+            }
+        }
+        
+        async function deleteClass(school, grade, classNumber, studentCount) {
+            const className = `${school}${gradeLabels[grade]}${classNumber}班`;
+            
+            if (studentCount > 0) {
+                if (!confirm(`⚠️ 确定删除班级 "${className}" 吗？\n\n该班级有 ${studentCount} 名学生，删除班级将同时删除所有学生数据！\n\n此操作不可恢复！`)) {
+                    return;
+                }
+            } else {
+                if (!confirm(`确定删除空班级 "${className}" 吗？`)) {
+                    return;
+                }
+            }
+            
+            try {
+                const res = await fetch('/api/auth/class', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ school, grade, class_number: classNumber })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ 班级删除成功！');
+                    loadClasses();
+                } else {
+                    alert(data.error || '删除失败');
+                }
+            } catch (err) {
+                alert('删除失败: ' + err.message);
+            }
+        }
+        
+        // ==================== 设备管理 ====================
+        async function loadDevices() {
+            try {
+                const res = await fetch('/api/admin/students');
+                const data = await res.json();
+                
+                const students = data.students || [];
+                const studentsWithDevice = students.filter(s => s.device_id);
+                
+                document.getElementById('totalDevices').textContent = studentsWithDevice.length;
+                
+                const today = new Date().toDateString();
+                const activeCount = studentsWithDevice.filter(s => {
+                    if (!s.last_action_time) return false;
+                    return new Date(s.last_action_time).toDateString() === today;
+                }).length;
+                document.getElementById('activeToday').textContent = activeCount;
+                
+                const tbody = document.getElementById('deviceList');
+                const deviceEmpty = document.getElementById('deviceEmpty');
+                
+                if (studentsWithDevice.length === 0) {
+                    tbody.innerHTML = '';
+                    deviceEmpty.style.display = 'block';
+                    return;
+                }
+                
+                deviceEmpty.style.display = 'none';
+                tbody.innerHTML = studentsWithDevice.map(s => `
+                    <tr>
+                        <td><strong>${s.name}</strong></td>
+                        <td>${s.student_no}</td>
+                        <td>${s.school} ${gradeLabels[s.grade]}${s.class_number}班</td>
+                        <td style="font-family: monospace; font-size: 11px; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${s.device_id}">${s.device_id}</td>
+                        <td>${s.last_action_time ? new Date(s.last_action_time).toLocaleString() : '-'}</td>
+                        <td><button class="btn btn-warning btn-small" onclick="unlockDevice(${s.id}, '${s.name}')">解锁</button></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function unlockDevice(studentId, studentName) {
+            if (!confirm(`确定解锁学生 "${studentName}" 的设备绑定吗？\n\n解锁后该学生可以使用其他设备登录。`)) return;
+            
+            try {
+                const res = await fetch('/api/admin/unlock-device', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_id: studentId })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ 设备已解锁！');
+                    loadDevices();
+                } else {
+                    alert(data.error || '解锁失败');
+                }
+            } catch (err) {
+                alert('解锁失败: ' + err.message);
+            }
+        }
+        
+        // ==================== 操作日志 ====================
+        async function loadLogs() {
+            try {
+                const logType = document.getElementById('logType').value;
+                let url = '/api/admin/action-logs?limit=50';
+                if (logType) url += '&action_type=' + logType;
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                const tbody = document.getElementById('logList');
+                const logEmpty = document.getElementById('logEmpty');
+                
+                if (!data.logs || data.logs.length === 0) {
+                    tbody.innerHTML = '';
+                    logEmpty.style.display = 'block';
+                    return;
+                }
+                
+                logEmpty.style.display = 'none';
+                tbody.innerHTML = data.logs.map(log => `
+                    <tr>
+                        <td>${new Date(log.created_at).toLocaleString()}</td>
+                        <td><span class="badge ${log.action_type === 'register' ? 'badge-info' : 'badge-success'}">${log.action_type === 'register' ? '注册' : '登录'}</span></td>
+                        <td style="font-family: monospace; font-size: 11px; max-width: 120px; overflow: hidden; text-overflow: ellipsis;" title="${log.device_id || ''}">${log.device_id || '-'}</td>
+                        <td>${log.student_id || '-'}</td>
+                        <td>${log.ip_address || '-'}</td>
+                        <td><span class="badge ${log.success ? 'badge-success' : 'badge-danger'}">${log.success ? '成功' : '失败'}</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        // ==================== 生日验证开关 ====================
+        async function loadBirthdayStatus() {
+            try {
+                const res = await fetch('/api/auth/birthday-verification-status');
+                const data = await res.json();
+                
+                if (data.success) {
+                    document.getElementById('birthdayToggle').checked = data.enabled;
+                }
+            } catch (err) {
+                console.error('加载生日验证状态失败:', err);
+            }
+        }
+        
+        async function toggleBirthdayVerification() {
+            const enabled = document.getElementById('birthdayToggle').checked;
+            
+            try {
+                const res = await fetch('/api/auth/birthday-verification-toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+                
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert(enabled ? '✅ 生日验证已开启\n\n学生登录时需要输入生日验证身份。' : '✅ 生日验证已关闭\n\n学生登录时无需生日即可进入系统。');
+                } else {
+                    // 恢复开关状态
+                    document.getElementById('birthdayToggle').checked = !enabled;
+                    alert('❌ 操作失败: ' + (data.error || '未知错误'));
+                }
+            } catch (err) {
+                // 恢复开关状态
+                document.getElementById('birthdayToggle').checked = !enabled;
+                alert('❌ 操作失败: ' + err.message);
+            }
+        }
+        
+        // 辅助函数
+        function showMsg(elementId, msg, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+            setTimeout(() => el.innerHTML = '', 3000);
+        }
+        
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+        
+        // 点击模态框外部关闭
+        document.getElementById('assignTeacherModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+        
+        // 初始化
+        loadRegCode();
+        loadBirthdayStatus();
+    </script>
+</body>
+</html>

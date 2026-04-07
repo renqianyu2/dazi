@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本库管理</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body { background: #f5f7fa; display: block; padding: 0; min-height: 100vh; }
+        .admin-nav { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-nav a { color: white; text-decoration: none; margin: 0 15px; }
+        .admin-container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+        .add-form { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        table { width: 100%; background: white; border-radius: 10px; overflow: hidden; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background: #f5f7fa; font-weight: bold; }
+        .btn-small { padding: 5px 15px; font-size: 14px; margin: 0 5px; }
+        textarea { width: 100%; min-height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="admin-nav">
+        <div><strong>📊 谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="test-records.html">测试记录</a>
+            <a href="practice-records.html">练习记录</a>
+            <a href="classes.html">班级管理</a>
+            <a href="ranking.html">优秀学生</a>
+            <a href="texts.html">文本库</a>
+            <a href="test-code.html">测试验证码</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <h2>文本库管理</h2>
+
+        <div class="add-form">
+            <h3>添加新文本</h3>
+            <textarea id="newContent" placeholder="输入测试文本内容..."></textarea>
+            <div style="margin-top: 10px;">
+                <select id="newLevel">
+                    <option value="level1">简单</option>
+                    <option value="level2">中等</option>
+                    <option value="level3">困难</option>
+                </select>
+                <button class="btn btn-primary" onclick="addNewText()">添加</button>
+            </div>
+        </div>
+
+        <table id="textsTable">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">内容</th>
+                    <th>难度</th>
+                    <th>添加时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="textsBody"></tbody>
+        </table>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        async function loadTexts() {
+            const { texts } = await getAllTexts();
+            const tbody = document.getElementById('textsBody');
+            tbody.innerHTML = texts.map(t => `
+                <tr>
+                    <td>${t.content}</td>
+                    <td>${t.level === 'level1' ? '简单' : t.level === 'level2' ? '中等' : '困难'}</td>
+                    <td>${new Date(t.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-warning btn-small" onclick="deleteText(${t.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function addNewText() {
+            const content = document.getElementById('newContent').value.trim();
+            const level = document.getElementById('newLevel').value;
+
+            if (!content) {
+                alert('请输入文本内容');
+                return;
+            }
+
+            await addText(content, level, 'general');
+            document.getElementById('newContent').value = '';
+            loadTexts();
+        }
+
+        async function deleteText(id) {
+            if (confirm('确定删除该文本吗？')) {
+                await deleteText(id);
+                loadTexts();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+
+        loadTexts();
+    </script>
+</body>
+</html>

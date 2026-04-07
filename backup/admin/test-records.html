@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试记录管理</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        body { background: #f5f7fa; display: block; padding: 0; min-height: 100vh; }
+        .admin-nav { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-nav a { color: white; text-decoration: none; margin: 0 15px; }
+        .admin-container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        .filter-bar { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; }
+        .filter-bar select, .filter-bar input { padding: 8px; border: 1px solid #ddd; border-radius: 5px; }
+        table { width: 100%; background: white; border-radius: 10px; overflow: hidden; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+        th { background: #f5f7fa; font-weight: bold; }
+        .btn-small { padding: 5px 12px; font-size: 13px; margin: 0 3px; }
+        .valid { color: green; }
+        .invalid { color: red; text-decoration: line-through; }
+    </style>
+</head>
+<body>
+    <div class="admin-nav">
+        <div><strong>📊 谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="test-records.html">测试记录</a>
+            <a href="practice-records.html">练习记录</a>
+            <a href="classes.html">班级管理</a>
+            <a href="ranking.html">优秀学生</a>
+            <a href="texts.html">文本库</a>
+            <a href="test-code.html">测试验证码</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <h2>测试记录管理</h2>
+
+        <div class="filter-bar">
+            <select id="gradeFilter" onchange="loadRecords()">
+                <option value="">全部年级</option>
+                <option value="1">一年级</option>
+                <option value="2">二年级</option>
+                <option value="3">三年级</option>
+                <option value="4">四年级</option>
+                <option value="5">五年级</option>
+                <option value="6">六年级</option>
+                <option value="7">七年级</option>
+                <option value="8">八年级</option>
+            </select>
+            <select id="classFilter" onchange="loadRecords()">
+                <option value="">全部班级</option>
+            </select>
+            <input type="date" id="startDate" onchange="loadRecords()">
+            <input type="date" id="endDate" onchange="loadRecords()">
+            <button class="btn btn-primary" onclick="loadRecords()">查询</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>学生</th>
+                    <th>班级</th>
+                    <th>学号</th>
+                    <th>速度(字/分)</th>
+                    <th>准确率</th>
+                    <th>正确数</th>
+                    <th>错误数</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="recordsBody"></tbody>
+        </table>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.getElementById('gradeFilter').addEventListener('change', function() {
+            const grade = this.value;
+            const classFilter = document.getElementById('classFilter');
+            classFilter.innerHTML = '<option value="">全部班级</option>';
+            if (grade) {
+                for (let i = 1; i <= 10; i++) {
+                    classFilter.innerHTML += `<option value="${i}">${i}班</option>`;
+                }
+            }
+        });
+
+        async function loadRecords() {
+            const grade = document.getElementById('gradeFilter').value;
+            const classNumber = document.getElementById('classFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const params = new URLSearchParams();
+            if (grade) params.append('grade', grade);
+            if (classNumber) params.append('class_number', classNumber);
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+
+            const response = await fetch(`/api/test/records?${params}`);
+            const { records } = await response.json();
+
+            const tbody = document.getElementById('recordsBody');
+            tbody.innerHTML = records.map(r => `
+                <tr class="${r.is_valid ? 'valid' : 'invalid'}">
+                    <td>${new Date(r.created_at).toLocaleString('zh-CN')}</td>
+                    <td>${r.name}</td>
+                    <td>${r.class}</td>
+                    <td>${r.student_no}</td>
+                    <td>${r.speed}</td>
+                    <td>${r.accuracy}%</td>
+                    <td>${r.correct_count}</td>
+                    <td>${r.error_count}</td>
+                    <td>${r.is_valid ? '有效' : '无效'}</td>
+                    <td>
+                        <button class="btn ${r.is_valid ? 'btn-warning' : 'btn-primary'} btn-small"
+                                onclick="toggleValid(${r.id}, ${!r.is_valid})">
+                            ${r.is_valid ? '标记无效' : '标记有效'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function toggleValid(id, isValid) {
+            await fetch(`/api/test/records/${id}/invalid`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_valid: isValid })
+            });
+            loadRecords();
+        }
+
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+
+        loadRecords();
+    </script>
+</body>
+</html>

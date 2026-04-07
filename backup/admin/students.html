@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生管理</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body { background: #f0f4f8; display: block; padding: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .admin-nav { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .admin-nav a { color: white; text-decoration: none; margin: 0 15px; transition: opacity 0.3s; }
+        .admin-nav a:hover { opacity: 0.8; }
+        .admin-container { max-width: 1400px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: #1f2937; }
+
+        .stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat-card .icon { font-size: 36px; margin-bottom: 10px; }
+        .stat-card .value { font-size: 32px; font-weight: bold; color: #1f2937; }
+        .stat-card .label { color: #6b7280; font-size: 14px; }
+        .stat-card.blue { border-left: 4px solid #3b82f6; }
+        .stat-card.green { border-left: 4px solid #10b981; }
+        .stat-card.yellow { border-left: 4px solid #f59e0b; }
+        .stat-card.purple { border-left: 4px solid #8b5cf6; }
+
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .chart-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .chart-box h3 { margin-bottom: 15px; color: #374151; font-size: 16px; }
+        .chart-container { width: 100%; height: 300px; }
+
+        .btn-action { padding: 10px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; transition: transform 0.2s; margin-right: 10px; }
+        .btn-action:hover { transform: scale(1.05); }
+        .btn-action.green { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    </style>
+</head>
+<body>
+    <div class="admin-nav">
+        <div><strong>谷山学校管理后台</strong></div>
+        <div>
+            <a href="dashboard.html">数据总览</a>
+            <a href="students.html">学生管理</a>
+            <a href="test-records.html">测试记录</a>
+            <a href="practice-records.html">练习记录</a>
+            <a href="classes.html">班级管理</a>
+            <a href="ranking.html">优秀学生</a>
+            <a href="texts.html">文本库</a>
+            <a href="test-code.html">测试验证码</a>
+            <a href="#" onclick="logout()">退出</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div style="display:flex; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0; flex:1;">学生数据统计</h2>
+            <button class="btn-action green" onclick="window.location.href='checkin.html'">签到记录</button>
+            <button class="btn-action" onclick="window.location.href='students-roster.html'">学生名册</button>
+        </div>
+
+        <div class="stats-cards">
+            <div class="stat-card blue">
+                <div class="icon"></div>
+                <div class="value" id="totalStudents">-</div>
+                <div class="label">学生总数</div>
+            </div>
+            <div class="stat-card green">
+                <div class="icon"></div>
+                <div class="value" id="todayCheckin">-</div>
+                <div class="label">今日签到</div>
+            </div>
+            <div class="stat-card yellow">
+                <div class="icon"></div>
+                <div class="value" id="testedStudents">-</div>
+                <div class="label">已测试学生</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="icon"></div>
+                <div class="value" id="avgSpeed">-</div>
+                <div class="label">平均速度</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-box">
+                <h3>各学校学生数量</h3>
+                <div id="schoolChart" class="chart-container"></div>
+            </div>
+            <div class="chart-box">
+                <h3>各年级学生分布</h3>
+                <div id="gradeChart" class="chart-container"></div>
+            </div>
+            <div class="chart-box">
+                <h3>各班级学生数量</h3>
+                <div id="classChart" class="chart-container"></div>
+            </div>
+            <div class="chart-box">
+                <h3>近7天签到趋势</h3>
+                <div id="checkinTrendChart" class="chart-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const schoolChart = echarts.init(document.getElementById('schoolChart'));
+        const gradeChart = echarts.init(document.getElementById('gradeChart'));
+        const classChart = echarts.init(document.getElementById('classChart'));
+        const checkinTrendChart = echarts.init(document.getElementById('checkinTrendChart'));
+
+        async function loadStats() {
+            const res = await fetch('/api/admin/student-stats');
+            const data = await res.json();
+
+            document.getElementById('totalStudents').textContent = data.totalStudents || 0;
+            document.getElementById('todayCheckin').textContent = data.todayCheckin || 0;
+            document.getElementById('testedStudents').textContent = data.testStats?.tested_students || 0;
+            document.getElementById('avgSpeed').textContent = data.testStats?.avg_speed ? Math.round(data.testStats.avg_speed) + ' 字/分' : '0 字/分';
+
+            // 学校饼图
+            const zhonghualuCount = Number(data.schoolStats.find(s => s.school === '中华路小学')?.count) || 0;
+            const gushanPrimaryCount = (data.classStats || [])
+                .filter(c => c.school === '谷山学校' && Number(c.grade) >= 1 && Number(c.grade) <= 5)
+                .reduce((sum, c) => sum + (Number(c.count) || 0), 0);
+            const gushanMiddleCount = (data.classStats || [])
+                .filter(c => c.school === '谷山学校' && Number(c.grade) >= 6 && Number(c.grade) <= 8)
+                .reduce((sum, c) => sum + (Number(c.count) || 0), 0);
+
+            schoolChart.setOption({
+                tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+                legend: { bottom: 0 },
+                color: ['#3b82f6', '#10b981', '#f59e0b'],
+                series: [{
+                    type: 'pie', radius: ['40%','70%'],
+                    data: [
+                        { name: '中华路小学', value: zhonghualuCount },
+                        { name: '谷山小学', value: gushanPrimaryCount },
+                        { name: '谷山初中部', value: gushanMiddleCount }
+                    ].filter(item => item.value > 0),
+                    itemStyle: { borderRadius: 4 }
+                }]
+            });
+
+            // 年级柱状图
+            const grades = ['一','二','三','四','五','六','七','八'];
+            gradeChart.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: grades.map(g => g+'年级') },
+                yAxis: { type: 'value', name: '学生数' },
+                series: [{
+                    data: grades.map((g, i) => {
+                        const found = data.gradeStats.find(d => d.grade === (i+1));
+                        return found ? found.count : 0;
+                    }),
+                    type: 'bar', itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] }
+                }]
+            });
+
+            // 班级横向柱状图
+            const classData = data.classStats.slice(0, 20).map(c => ({
+                name: c.school ? c.school.slice(0,2) : '学校' + c.grade + c.class_number + '班',
+                value: c.count
+            })).reverse();
+            classChart.setOption({
+                tooltip: { trigger: 'axis' },
+                grid: { left: 120 },
+                yAxis: { type: 'category', data: data.classStats.slice(0, 20).map(c => `${c.school ? c.school.slice(0,4) : ''} ${c.grade}年级${c.class_number}班`).reverse() },
+                xAxis: { type: 'value', name: '人数' },
+                series: [{ data: classData.map(d => d.value), type: 'bar', itemStyle: { color: '#f59e0b', borderRadius: [0,4,4,0] } }]
+            });
+
+            // 签到趋势
+            const monthStats = Array.isArray(data.monthStats)
+                ? data.monthStats
+                : (data.monthStats ? [data.monthStats] : []);
+            const dates = monthStats.map(item => item?.date ? item.date.slice(5) : '').filter(Boolean);
+            const counts = monthStats.map(item => Number(item?.count) || 0).slice(0, dates.length);
+
+            checkinTrendChart.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: dates.length ? dates : ['0'] },
+                yAxis: { type: 'value', name: '签到人数' },
+                series: [{
+                    data: counts.length ? counts : [0],
+                    type: 'line', smooth: true,
+                    areaStyle: { color: 'rgba(16,185,129,0.3)' },
+                    itemStyle: { color: '#10b981' }
+                }]
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('adminInfo');
+            window.location.href = 'login.html';
+        }
+
+        window.addEventListener('resize', () => {
+            schoolChart.resize();
+            gradeChart.resize();
+            classChart.resize();
+            checkinTrendChart.resize();
+        });
+
+        loadStats();
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员登录</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .admin-login {
+            max-width: 400px;
+            text-align: center;
+        }
+        .admin-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container admin-login">
+        <div class="admin-icon">🔐</div>
+        <h1>管理员登录</h1>
+        <p style="color: #888; margin-bottom: 30px;">教师管理后台</p>
+
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="用户名" required>
+            <input type="password" id="password" placeholder="密码" required>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">登录</button>
+        </form>
+
+        <p style="margin-top: 20px; color: #888; font-size: 14px;">
+            默认账号：admin / admin123
+        </p>
+    </div>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const result = await adminLogin(username, password);
+                if (result.success) {
+                    localStorage.setItem('adminInfo', JSON.stringify(result.admin));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert('用户名或密码错误');
+                }
+            } catch (err) {
+                alert('登录失败，请检查服务器');
+            }
+        });
+    </script>
+</body>
+</html>
