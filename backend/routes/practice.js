@@ -10,11 +10,28 @@ const SCORE_WEIGHTS = {
     classics: 0.20
 };
 
-// 计算单个项目的积分
-function calculateItemScore(score, wpm, accuracy) {
-    const normalizedScore = Math.min(score / 10000, 1) * 100;
-    const normalizedWpm = Math.min(wpm / 200, 1) * 100;
-    return Math.round(normalizedScore * 0.4 + normalizedWpm * 0.4 + accuracy * 0.2);
+// 计算单个项目的综合能力分 (Composite Proficiency Index)
+function calculateItemScore(wpm, accuracy, score, masteryValue, masteryTarget) {
+    // 1. 速度分 (Speed Score) - 目标 80 WPM (对应学生级优秀标准)
+    const sScore = Math.min((wpm || 0) / 80, 1.2) * 100;
+    
+    // 2. 准确率分 (Accuracy Score) - 保持百分比映射
+    const aScore = accuracy || 0;
+    
+    // 3. 游戏与技战术分 (Mastery/Game Score)
+    let mScore;
+    if (masteryTarget) {
+        mScore = Math.min((masteryValue || 0) / masteryTarget, 1) * 100;
+    } else {
+        mScore = Math.min((score || 0) / 5000, 1) * 100;
+    }
+
+    // 最终加权公式：速度(50%) + 准确率(30%) + 技战术/成就(20%)
+    return Math.round(
+        sScore * 0.5 + 
+        aScore * 0.3 + 
+        mScore * 0.2
+    );
 }
 
 // 计算综合积分
@@ -32,7 +49,7 @@ function updateStudentScoreRecord(studentId, callback) {
     const queries = {
         interstellar: `SELECT 
             MAX(score) as best_score, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
-            COUNT(*) as play_count, SUM(duration) as total_time
+            MAX(max_combo) as best_combo, COUNT(*) as play_count, SUM(duration) as total_time
             FROM practice_records WHERE student_id = ? AND mode = 'interstellar-typist'`,
         fruit: `SELECT 
             MAX(score) as best_score, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
@@ -40,7 +57,7 @@ function updateStudentScoreRecord(studentId, callback) {
             FROM practice_records WHERE student_id = ? AND mode = 'fruit-catch'`,
         adventure: `SELECT 
             MAX(score) as best_score, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
-            COUNT(DISTINCT CONCAT(category, '-', level)) as levels_completed, COUNT(*) as play_count
+            COUNT(DISTINCT category || '-' || level) as levels_completed, COUNT(*) as play_count
             FROM practice_records WHERE student_id = ? AND mode LIKE 'adventure-%'`,
         classics: `SELECT 
             MAX(score) as best_speed, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
@@ -60,10 +77,35 @@ function updateStudentScoreRecord(studentId, callback) {
             results[mode].best_accuracy = results[mode].best_accuracy || 0;
             completed++;
             if (completed === 4) {
-                const interstellarScore = calculateItemScore(results.interstellar.best_score, results.interstellar.best_wpm, results.interstellar.best_accuracy);
-                const fruitScore = calculateItemScore(results.fruit.best_score, results.fruit.best_wpm, results.fruit.best_accuracy);
-                const adventureScore = calculateItemScore(results.adventure.best_score, results.adventure.best_wpm, results.adventure.best_accuracy);
-                const classicsScore = calculateItemScore(results.classics.best_speed || results.classics.best_wpm, results.classics.best_wpm, results.classics.best_accuracy);
+                // 计算各项目积分 (根据各模式特点传入 mastery 目标)
+                const interstellarScore = calculateItemScore(
+                    results.interstellar.best_wpm,
+                    results.interstellar.best_accuracy,
+                    results.interstellar.best_score,
+                    // 星际打字：关注连击 (目标 100)
+                    results.interstellar.best_combo || 0, 100 
+                );
+                const fruitScore = calculateItemScore(
+                    results.fruit.best_wpm,
+                    results.fruit.best_accuracy,
+                    results.fruit.best_score,
+                    // 接水果：关注连击 (目标 50)
+                    results.fruit.best_combo || 0, 50
+                );
+                const adventureScore = calculateItemScore(
+                    results.adventure.best_wpm,
+                    results.adventure.best_accuracy,
+                    results.adventure.best_score,
+                    // 英语闯关：关注关卡进度 (目标 15)
+                    results.adventure.levels_completed || 0, 15
+                );
+                const classicsScore = calculateItemScore(
+                    results.classics.best_wpm,
+                    results.classics.best_accuracy,
+                    results.classics.best_speed || results.classics.best_score,
+                    // 国学打字：关注打字速度 CPM (目标 120)
+                    results.classics.best_wpm, 120
+                );
                 const totalScore = calculateTotalScore(interstellarScore, fruitScore, adventureScore, classicsScore);
                 
                 db.get('SELECT * FROM practice_scores WHERE student_id = ?', [studentId], (err, existing) => {
@@ -297,6 +339,7 @@ router.get('/ranking/:mode', (req, res) => {
     whereClause += ' AND s.class_number = ?';
     params.push(class_number);
   }
+  whereClause += ' AND s.exclude_ranking = 0';
 
   const sql = `
     SELECT 

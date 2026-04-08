@@ -2050,14 +2050,7 @@
         };
 
         async function confirmExit() {
-            if (!game.isRunning) {
-                location.href = 'practice.html';
-                return;
-            }
-
-            const choice = confirm('游戏正在进行中！\n\n点击"确定"保存当前记录并退出\n点击"取消"直接退出（不保存记录）');
-
-            if (choice) {
+            if (game.isRunning && game.score > 0) {
                 await saveGameRecord();
             }
             location.href = 'practice.html';

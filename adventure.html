@@ -795,6 +795,8 @@
         let errorKeystrokes = 0;      // 错误按键次数
         let wordsCompleted = 0;       // 完成的单词数
         let levelStartTime = 0;      // 关卡开始时间
+        let combo = 0;               // 当前连击
+        let maxCombo = 0;            // 最大连击
         
         const flashEl = document.getElementById('screenFlash');
         const synth = window.speechSynthesis;
@@ -946,6 +948,8 @@
             correctKeystrokes = 0;
             errorKeystrokes = 0;
             wordsCompleted = 0;
+            combo = 0;
+            maxCombo = 0;
             
             document.getElementById('levelSelectArea').style.display = 'none';
             document.getElementById('gameArea').style.display = 'flex';
@@ -1008,6 +1012,9 @@
                 // Correct char
                 typedCount++;
                 correctKeystrokes++;
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                
                 playSfx('hit');
                 score += 5;
                 document.getElementById('scoreValue').textContent = score;
@@ -1036,6 +1043,7 @@
                 }
             } else {
                 // Wrong char
+                combo = 0; 
                 errorKeystrokes++;
                 playSfx('miss');
                 
@@ -1097,6 +1105,8 @@
                     total_chars: totalKeystrokes,
                     correct_chars: correctKeystrokes,
                     error_chars: errorKeystrokes,
+                    combo: combo,
+                    max_combo: maxCombo,
                     level: currentLevel + 1,
                     category: currentCategory.id,
                     category_name: currentCategory.name,
@@ -1105,7 +1115,9 @@
                         categoryName: currentCategory.name,
                         level: currentLevel + 1, 
                         theme: levels[currentLevel].theme,
-                        wordsCompleted: wordsCompleted
+                        wordsCompleted: wordsCompleted,
+                        maxCombo: maxCombo,
+                        fluency: duration > 0 ? (wordsCompleted / (duration / 60)).toFixed(2) : 0
                     }
                 }).catch(err => console.error('Saving failed:', err));
             }
@@ -1114,16 +1126,61 @@
             document.getElementById('gameOverOverlay').style.display = 'flex';
         }
 
+        function saveCurrentRecord() {
+            if (gameState !== 'PLAYING' || score === 0) return;
+            
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+            if (!studentInfo.id || typeof submitPractice === 'undefined') return;
+            
+            const duration = Math.round((Date.now() - levelStartTime) / 1000);
+            const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 0;
+            const wpm = duration > 0 ? Math.round((correctKeystrokes + wordsCompleted * 2) / (duration / 60)) : 0;
+            
+            submitPractice({
+                student_id: studentInfo.id,
+                mode: 'adventure-english',
+                score: score,
+                duration: duration,
+                wpm: wpm,
+                accuracy: accuracy,
+                total_chars: totalKeystrokes,
+                correct_chars: correctKeystrokes,
+                error_chars: errorKeystrokes,
+                combo: combo,
+                max_combo: maxCombo,
+                level: currentLevel + 1,
+                category: currentCategory?.id || 'unknown',
+                category_name: currentCategory?.name || '未知',
+                extra_data: { 
+                    category: currentCategory?.id || 'unknown',
+                    categoryName: currentCategory?.name || '未知',
+                    level: currentLevel + 1, 
+                    theme: levels[currentLevel]?.theme || '',
+                    wordsCompleted: wordsCompleted,
+                    maxCombo: maxCombo,
+                    fluency: duration > 0 ? (wordsCompleted / (duration / 60)).toFixed(2) : 0
+                }
+            }).catch(err => console.error('保存记录失败:', err));
+        }
+
         function backToLevels() {
+            if (gameState === 'PLAYING' && score > 0) {
+                saveCurrentRecord();
+            }
             gameState = 'MENU';
             document.getElementById('gameOverOverlay').style.display = 'none';
             document.getElementById('levelSelectArea').style.display = 'flex';
             document.getElementById('gameArea').style.display = 'none';
             document.getElementById('backBtn').setAttribute('href', 'practice.html');
             document.getElementById('backBtn').removeAttribute('onclick');
-            // 返回到词库选择
             backToCategories();
         }
+
+        window.addEventListener('beforeunload', function() {
+            if (gameState === 'PLAYING' && score > 0) {
+                saveCurrentRecord();
+            }
+        });
 
         // Init the menu
         initLevels();

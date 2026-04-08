@@ -30,6 +30,85 @@
         .input-box { width: 100px; height: 100px; font-size: 60px; text-align: center; border: 3px solid #f5af19; border-radius: 10px; }
         .toggle-pinyin { margin-bottom: 20px; }
         .back-btn { position: absolute; top: 20px; right: 20px; }
+
+        /* Sidebar Leaderboard */
+        .sidebar-right {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            width: 250px;
+            height: calc(100vh - 180px);
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(241, 39, 17, 0.3);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+            overflow: hidden;
+        }
+        
+        .sidebar-title {
+            padding: 15px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            border-bottom: 1px solid rgba(241, 39, 17, 0.3);
+            background: rgba(241, 39, 17, 0.2);
+        }
+
+        .leaderboard-list {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 10px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .lb-item {
+            position: absolute;
+            width: calc(100% - 20px);
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .lb-item .lb-rank { font-weight: bold; width: 30px; color: white; }
+        .lb-item .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; color: white;}
+        .lb-item .lb-score { color: #f5af19; font-family: monospace; font-weight: bold; }
+
+        .lb-item.rank-1 { background: linear-gradient(90deg, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 100%); border-color: gold; color: gold; z-index: 3; }
+        .lb-item.rank-2 { background: linear-gradient(90deg, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0) 100%); border-color: silver; color: silver; z-index: 2; }
+        .lb-item.rank-3 { background: linear-gradient(90deg, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0) 100%); border-color: #cd7f32; color: #cd7f32; z-index: 1; }
+        .lb-item.is-me { border: 2px solid #f5af19; box-shadow: inset 0 0 10px rgba(245, 175, 25, 0.3); }
+
+        .player-info {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(241, 39, 17, 0.3);
+            padding: 10px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            display: none;
+        }
+
+        .player-name {
+            font-size: 18px;
+            color: #f5af19;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -51,7 +130,7 @@
                     <div class="classic-desc">天地玄黄，宇宙洪荒<br>共1000字</div>
                 </div>
             </div>
-            <button class="btn btn-warning" onclick="location.href='practice.html'" style="margin-top: 20px;">返回</button>
+            <button class="btn btn-warning" onclick="goBack()" style="margin-top: 20px;">返回</button>
         </div>
 
         <div id="gameScreen" class="game-screen">
@@ -80,13 +159,119 @@
             <div class="text-display" id="textDisplay"></div>
         </div>
 
+        <!-- 玩家信息栏 -->
+        <div class="player-info" id="playerInfoUI">
+            <div class="player-name" id="uiPlayerName">访客</div>
+        </div>
+
+        <!-- 排行榜系统 (Leaderboard) -->
+        <div class="sidebar-right" id="leaderboardSidebar">
+            <div class="sidebar-title">实时荣誉榜</div>
+            <ul class="leaderboard-list" id="lbList">
+                <!-- Items injected by JS -->
+            </ul>
+        </div>
+
         <div class="input-area">
             <input type="text" class="input-box" id="inputBox" maxlength="1">
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script src="js/sound.js"></script>
+    <script src="js/api.js"></script>
     <script>
+        // 网络同步引擎 (排行榜)
+        const netEngine = {
+            socket: null,
+            myId: null,
+            myName: '访客',
+            init(inGame = false) {
+                try {
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    if (studentInfo.id && studentInfo.name) {
+                        this.myId = studentInfo.id;
+                        this.myName = studentInfo.name;
+                    } else {
+                        this.myId = 'guest_' + Math.floor(Math.random()*10000);
+                    }
+                    
+                    document.getElementById('uiPlayerName').innerText = this.myName;
+                    document.getElementById('playerInfoUI').style.display = inGame ? 'block' : 'none';
+                    document.getElementById('leaderboardSidebar').style.display = inGame ? 'flex' : 'none';
+
+                    if (inGame) {
+                        this.renderLeaderboard([{ username: this.myName, score: 0 }]);
+                    }
+
+                    if (typeof io !== 'undefined') {
+                        this.socket = io();
+                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+
+                        this.socket.on('leaderboard_update', (list) => {
+                            if (list && list.length > 0) this.renderLeaderboard(list);
+                        });
+                    }
+                } catch(e) {
+                    console.warn("Socket.io initialization skipped or failed", e);
+                }
+            },
+            updateScore(score) {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('update_score', { score, wpm: score }); 
+                } else {
+                    this.renderLeaderboard([{ username: this.myName, score }]);
+                }
+            },
+            resetScore() {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('reset_score');
+                }
+            },
+            renderLeaderboard(list) {
+                const ul = document.getElementById('lbList');
+                if (!ul) return;
+                const ITEM_HEIGHT = 45; 
+                
+                const existingItems = new Map();
+                Array.from(ul.children).forEach(li => {
+                    existingItems.set(li.dataset.name, li);
+                });
+
+                list.forEach((p, idx) => {
+                    const currentRank = idx + 1;
+                    const isMe = p.username === this.myName;
+                    
+                    let li = existingItems.get(p.username);
+                    if (!li) {
+                        li = document.createElement('li');
+                        li.className = 'lb-item';
+                        li.dataset.name = p.username;
+                        li.innerHTML = `
+                            <span class="lb-rank"></span>
+                            <span class="lb-name"></span>
+                            <span class="lb-score"></span>
+                        `;
+                        ul.appendChild(li);
+                    } else {
+                        existingItems.delete(p.username);
+                    }
+                    
+                    li.querySelector('.lb-rank').innerText = currentRank;
+                    li.querySelector('.lb-score').innerText = p.score;
+                    li.querySelector('.lb-name').innerText = p.username;
+                    
+                    li.style.transform = `translateY(${idx * ITEM_HEIGHT}px)`;
+                    li.classList.remove('rank-1', 'rank-2', 'rank-3', 'is-me');
+                    if (currentRank === 1) li.classList.add('rank-1');
+                    if (currentRank === 2) li.classList.add('rank-2');
+                    if (currentRank === 3) li.classList.add('rank-3');
+                    if (isMe) li.classList.add('is-me');
+                });
+
+                existingItems.forEach(li => li.remove());
+            }
+        };
         const classics = {
             baijiaxing: {
                 title: '百家姓',
@@ -150,8 +335,9 @@
         let totalKeystrokes = 0;      // 总按键次数
         let correctKeystrokes = 0;    // 正确按键次数
         let errorKeystrokes = 0;      // 错误按键次数
+        let combo = 0;               // 当前连击
+        let maxCombo = 0;            // 最大连击
         let showPinyin = true;       // 是否显示拼音
-        let showPinyin = true;
 
         // 初始化静音按钮状态
         function updateMuteBtn() {
@@ -171,8 +357,12 @@
             totalKeystrokes = 0;
             correctKeystrokes = 0;
             errorKeystrokes = 0;
+            combo = 0;
+            maxCombo = 0;
             document.getElementById('selectScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
+            
+            netEngine.init(true);
             renderText();
             startTimer();
             document.getElementById('inputBox').focus();
@@ -210,6 +400,9 @@
             const speed = elapsed > 0 ? Math.round((currentIndex / elapsed) * 60) : 0;
             document.getElementById('speed').textContent = speed;
             document.getElementById('progress').textContent = `${currentIndex}/${currentClassic.chars.length}`;
+            
+            // 实时推送当前速度
+            netEngine.updateScore(speed);
         }
 
         document.getElementById('inputBox').addEventListener('compositionend', function(e) {
@@ -218,6 +411,8 @@
             if (input === currentClassic.chars[currentIndex].c) {
                 Sound.playCorrect();
                 correctKeystrokes++;
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
                 currentIndex++;
 
                 if (currentIndex >= currentClassic.chars.length) {
@@ -234,23 +429,32 @@
                     // 保存练习记录
                     const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
                     const classicsMode = currentClassic.title === '百家姓' ? 'baijiaxing' : 'qianziwen';
+                    
+                    // 无拼音加成：如果不开启拼音，积分权重提高 50%
+                    const pinyinBonus = showPinyin ? 1.0 : 1.5;
+                    const finalScore = Math.round(speed * pinyinBonus);
+
                     if (studentInfo.id) {
                         submitPractice({
                             student_id: studentInfo.id,
                             mode: 'classics-' + classicsMode,
-                            score: speed,
+                            score: finalScore,
                             duration: elapsed,
-                            wpm: wpm,
+                            wpm: speed,
                             accuracy: accuracy,
                             total_chars: totalKeystrokes,
                             correct_chars: correctKeystrokes,
                             error_chars: errorKeystrokes,
+                            combo: combo,
+                            max_combo: maxCombo,
                             category: classicsMode,
                             category_name: currentClassic.title,
                             extra_data: { 
                                 type: currentClassic.title, 
                                 chars: currentIndex,
-                                pinyinEnabled: showPinyin
+                                pinyinEnabled: showPinyin,
+                                pinyinBonus: pinyinBonus,
+                                maxCombo: maxCombo
                             }
                         }).catch(err => console.error('保存记录失败:', err));
                     }
@@ -262,6 +466,7 @@
                 }
             } else {
                 Sound.playError();
+                combo = 0;
                 errorKeystrokes++;
             }
             setTimeout(() => e.target.value = '', 200);
@@ -274,11 +479,65 @@
 
         function backToSelect() {
             clearInterval(timerInterval);
+            netEngine.resetScore();
             document.getElementById('selectScreen').style.display = 'block';
             document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('playerInfoUI').style.display = 'none';
+            document.getElementById('leaderboardSidebar').style.display = 'none';
             currentClassic = null;
             currentIndex = 0;
         }
+
+        function saveCurrentRecord() {
+            if (!currentClassic || currentIndex === 0) return;
+            
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+            if (!studentInfo.id || typeof submitPractice === 'undefined') return;
+            
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const speed = elapsed > 0 ? Math.round((currentIndex / elapsed) * 60) : 0;
+            const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+            const classicsMode = currentClassic.title === '百家姓' ? 'baijiaxing' : 'qianziwen';
+            const pinyinBonus = showPinyin ? 1.0 : 1.5;
+            const finalScore = Math.round(speed * pinyinBonus);
+            
+            submitPractice({
+                student_id: studentInfo.id,
+                mode: 'classics-' + classicsMode,
+                score: finalScore,
+                duration: elapsed,
+                wpm: speed,
+                accuracy: accuracy,
+                total_chars: totalKeystrokes,
+                correct_chars: correctKeystrokes,
+                error_chars: errorKeystrokes,
+                combo: combo,
+                max_combo: maxCombo,
+                category: classicsMode,
+                category_name: currentClassic.title,
+                extra_data: { 
+                    type: currentClassic.title, 
+                    chars: currentIndex,
+                    pinyinEnabled: showPinyin,
+                    pinyinBonus: pinyinBonus,
+                    maxCombo: maxCombo
+                }
+            }).catch(err => console.error('保存记录失败:', err));
+        }
+
+        function goBack() {
+            if (currentClassic && currentIndex > 0) {
+                saveCurrentRecord();
+            }
+            clearInterval(timerInterval);
+            location.href = 'practice.html';
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (currentClassic && currentIndex > 0) {
+                saveCurrentRecord();
+            }
+        });
     </script>
 </body>
 </html>

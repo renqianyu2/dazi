@@ -101,7 +101,7 @@ router.delete('/student/:id', (req, res) => {
 // 更新学生信息
 router.put('/student/:id', (req, res) => {
   const { id } = req.params;
-  const { name, grade, class_number, teacher } = req.body;
+  const { name, grade, class_number, teacher, exclude_ranking } = req.body;
 
   const gradeLabels = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '七年级', '八年级'];
   const classText = `${gradeLabels[grade - 1]}${class_number}班`;
@@ -109,8 +109,8 @@ router.put('/student/:id', (req, res) => {
   // 如果传了教师字段则更新，否则不修改
   if (teacher !== undefined) {
     db.run(
-      'UPDATE students SET name = ?, grade = ?, class_number = ?, class = ?, teacher = ? WHERE id = ?',
-      [name, grade, class_number, classText, teacher || null, id],
+      'UPDATE students SET name = ?, grade = ?, class_number = ?, class = ?, teacher = ?, exclude_ranking = ? WHERE id = ?',
+      [name, grade, class_number, classText, teacher || null, exclude_ranking ? 1 : 0, id],
       function(err) {
         if (err) return res.status(500).json({ error: '更新失败' });
         res.json({ success: true });
@@ -118,8 +118,8 @@ router.put('/student/:id', (req, res) => {
     );
   } else {
     db.run(
-      'UPDATE students SET name = ?, grade = ?, class_number = ?, class = ? WHERE id = ?',
-      [name, grade, class_number, classText, id],
+      'UPDATE students SET name = ?, grade = ?, class_number = ?, class = ?, exclude_ranking = ? WHERE id = ?',
+      [name, grade, class_number, classText, exclude_ranking ? 1 : 0, id],
       function(err) {
         if (err) return res.status(500).json({ error: '更新失败' });
         res.json({ success: true });
@@ -130,7 +130,7 @@ router.put('/student/:id', (req, res) => {
 
 // 创建学生（管理员）
 router.post('/student', async (req, res) => {
-  const { name, school, grade, class_number, teacher } = req.body;
+  const { name, school, grade, class_number, teacher, exclude_ranking } = req.body;
 
   if (!name || !school || !grade || !class_number) {
     return res.status(400).json({ error: '缺少必填字段' });
@@ -158,8 +158,8 @@ router.post('/student', async (req, res) => {
       const password = bcrypt.hashSync('123456', 10);
 
       db.run(
-        'INSERT INTO students (name, school, grade, class_number, class, student_no, password, teacher) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [name, school, grade, class_number, classText, studentNo, password, teacher || null],
+        'INSERT INTO students (name, school, grade, class_number, class, student_no, password, teacher, exclude_ranking) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [name, school, grade, class_number, classText, studentNo, password, teacher || null, exclude_ranking ? 1 : 0],
         function(err) {
           if (err) {
             if (err.message.includes('UNIQUE')) {

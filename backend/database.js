@@ -37,6 +37,7 @@ function initDatabase() {
       session_token TEXT,
       login_ip TEXT,
       login_time DATETIME,
+      exclude_ranking INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
@@ -56,6 +57,7 @@ function initDatabase() {
     db.run(`ALTER TABLE students ADD COLUMN teacher TEXT`, () => {});
     // 换班相关字段
     db.run(`ALTER TABLE students ADD COLUMN last_class_change_time DATETIME`, () => {});
+    db.run(`ALTER TABLE students ADD COLUMN exclude_ranking INTEGER DEFAULT 0`, () => {});
 
     // 系统配置表（存储注册码等信息）
     db.run(`CREATE TABLE IF NOT EXISTS system_configs (

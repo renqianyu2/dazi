@@ -10,25 +10,30 @@ const SCORE_WEIGHTS = {
     classics: 0.20         // 国学打字权重 20%
 };
 
-// 各成分权重
-const COMPONENT_WEIGHTS = {
-    score: 0.4,      // 分数成分 40%
-    wpm: 0.4,        // 速度成分 40%
-    accuracy: 0.2    // 准确率成分 20%
-};
-
-// 计算单个项目的积分
-function calculateItemScore(score, wpm, accuracy) {
-    // 分数标准化 (假设最高10000分)
-    const normalizedScore = Math.min(score / 10000, 1) * 100;
-    // WPM标准化 (假设最高200)
-    const normalizedWpm = Math.min(wpm / 200, 1) * 100;
-    // 准确率直接用百分比
+// 计算单个项目的综合能力分 (Composite Proficiency Index)
+function calculateItemScore(wpm, accuracy, score, masteryValue, masteryTarget) {
+    // 1. 速度分 (Speed Score) - 目标 80 WPM (对应学生级优秀标准)
+    // 允许适度超过 100% 封顶，最高 120
+    const sScore = Math.min((wpm || 0) / 80, 1.2) * 100;
     
+    // 2. 准确率分 (Accuracy Score) - 保持百分比映射
+    const aScore = accuracy || 0;
+    
+    // 3. 游戏与技战术分 (Mastery/Game Score)
+    // 如果有特定的 masteryTP 目标（如连击、关卡），则基于目标百分比；否则基于游戏分标准化
+    let mScore;
+    if (masteryTarget) {
+        mScore = Math.min((masteryValue || 0) / masteryTarget, 1) * 100;
+    } else {
+        // 后备方案：游戏得分标准化 (假设 5000 分为一局的高分参考)
+        mScore = Math.min((score || 0) / 5000, 1) * 100;
+    }
+
+    // 最终加权公式：速度(50%) + 准确率(30%) + 技战术/成就(20%)
     return Math.round(
-        normalizedScore * COMPONENT_WEIGHTS.score +
-        normalizedWpm * COMPONENT_WEIGHTS.wpm +
-        accuracy * COMPONENT_WEIGHTS.accuracy
+        sScore * 0.5 + 
+        aScore * 0.3 + 
+        mScore * 0.2
     );
 }
 
@@ -90,7 +95,7 @@ router.post('/update/:student_id', (req, res) => {
             MAX(score) as best_score,
             MAX(wpm) as best_wpm,
             MAX(accuracy) as best_accuracy,
-            COUNT(DISTINCT CONCAT(category, '-', level)) as levels_completed,
+            COUNT(DISTINCT category || '-' || level) as levels_completed,
             COUNT(*) as play_count
             FROM practice_records WHERE student_id = ? AND mode LIKE 'adventure-%'`,
         
@@ -119,26 +124,34 @@ router.post('/update/:student_id', (req, res) => {
             
             completed++;
             if (completed === 4) {
-                // 计算各项目积分
+                // 计算各项目积分 (根据各模式特点传入 mastery 目标)
                 const interstellarScore = calculateItemScore(
-                    results.interstellar.best_score,
                     results.interstellar.best_wpm,
-                    results.interstellar.best_accuracy
+                    results.interstellar.best_accuracy,
+                    results.interstellar.best_score,
+                    // 星际打字：关注连击 (假设目标 100 连击)
+                    results.interstellar.best_combo || 0, 100 
                 );
                 const fruitScore = calculateItemScore(
-                    results.fruit.best_score,
                     results.fruit.best_wpm,
-                    results.fruit.best_accuracy
+                    results.fruit.best_accuracy,
+                    results.fruit.best_score,
+                    // 接水果：关注连击 (假设目标 50 连击)
+                    results.fruit.best_combo || 0, 50
                 );
                 const adventureScore = calculateItemScore(
-                    results.adventure.best_score,
                     results.adventure.best_wpm,
-                    results.adventure.best_accuracy
+                    results.adventure.best_accuracy,
+                    results.adventure.best_score,
+                    // 英语闯关：关注关卡进度 (假设目标 15 关)
+                    results.adventure.levels_completed || 0, 15
                 );
                 const classicsScore = calculateItemScore(
-                    results.classics.best_speed || results.classics.best_wpm,
                     results.classics.best_wpm,
-                    results.classics.best_accuracy
+                    results.classics.best_accuracy,
+                    results.classics.best_speed || results.classics.best_score,
+                    // 国学打字：关注打字速度 CPM (假设目标 120 字/分)
+                    results.classics.best_wpm, 120
                 );
                 const totalScore = calculateTotalScore(interstellarScore, fruitScore, adventureScore, classicsScore);
                 
@@ -255,7 +268,7 @@ router.get('/ranking/:field', (req, res) => {
     const allowedFields = ['total_score', 'interstellar_score', 'fruit_score', 'adventure_score', 'classics_score'];
     const orderField = allowedFields.includes(field) ? field : 'total_score';
     
-    let whereClause = '1=1';
+    let whereClause = 's.exclude_ranking = 0';
     const params = [];
     
     if (grade) {
@@ -311,7 +324,7 @@ router.get('/rank/:student_id', (req, res) => {
             SELECT COUNT(*) + 1 as class_rank
             FROM practice_scores ps
             JOIN students s ON ps.student_id = s.id
-            WHERE s.grade = ? AND s.class_number = ? AND ps.total_score > 
+            WHERE s.grade = ? AND s.class_number = ? AND s.exclude_ranking = 0 AND ps.total_score > 
                 (SELECT COALESCE(total_score, 0) FROM practice_scores WHERE student_id = ?)
         `;
         
@@ -320,15 +333,16 @@ router.get('/rank/:student_id', (req, res) => {
             SELECT COUNT(*) + 1 as grade_rank
             FROM practice_scores ps
             JOIN students s ON ps.student_id = s.id
-            WHERE s.grade = ? AND ps.total_score > 
+            WHERE s.grade = ? AND s.exclude_ranking = 0 AND ps.total_score > 
                 (SELECT COALESCE(total_score, 0) FROM practice_scores WHERE student_id = ?)
         `;
         
         // 查询总分排名
         const totalSql = `
             SELECT COUNT(*) + 1 as total_rank
-            FROM practice_scores
-            WHERE COALESCE(total_score, 0) > 
+            FROM practice_scores ps
+            JOIN students s ON ps.student_id = s.id
+            WHERE s.exclude_ranking = 0 AND COALESCE(ps.total_score, 0) > 
                 (SELECT COALESCE(total_score, 0) FROM practice_scores WHERE student_id = ?)
         `;
         

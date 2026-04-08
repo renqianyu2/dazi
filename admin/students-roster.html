@@ -177,6 +177,10 @@
                 <label>学号</label>
                 <input type="text" id="addStudentNo" placeholder="留空则自动生成">
             </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="addExcludeRanking" style="width: auto;">
+                <label style="margin: 0;">不参与排名 (屏蔽测试账号)</label>
+            </div>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="saveAdd()">确认添加</button>
                 <button class="btn btn-secondary" onclick="closeAddModal()">取消</button>
@@ -226,6 +230,10 @@
                     <option value="10">10班</option>
                 </select>
             </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="editExcludeRanking" style="width: auto;">
+                <label style="margin: 0;">不参与排名 (屏蔽测试账号)</label>
+            </div>
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button class="btn btn-primary" onclick="saveEdit()">保存</button>
                 <button class="btn btn-secondary" onclick="closeModal()">取消</button>
@@ -251,6 +259,7 @@
             document.getElementById('addGrade').value = '';
             document.getElementById('addClass').value = '';
             document.getElementById('addStudentNo').value = '';
+            document.getElementById('addExcludeRanking').checked = false;
         }
 
         // 关闭添加用户弹窗
@@ -264,6 +273,7 @@
             const school = document.getElementById('addSchool').value;
             const grade = document.getElementById('addGrade').value;
             const classNum = document.getElementById('addClass').value;
+            const exclude_ranking = document.getElementById('addExcludeRanking').checked;
 
             // 验证必填字段
             if (!name) {
@@ -292,7 +302,8 @@
                         name: name, 
                         school: school, 
                         grade: parseInt(grade), 
-                        class_number: parseInt(classNum) 
+                        class_number: parseInt(classNum),
+                        exclude_ranking: exclude_ranking
                     })
                 });
                 
@@ -417,7 +428,10 @@
             tbody.innerHTML = pageData.map(s => `
                 <tr>
                     <td><input type="checkbox" class="student-checkbox" value="${s.id}" onchange="handleCheckboxChange()"></td>
-                    <td>${s.name}</td>
+                    <td>
+                        ${s.name}
+                        ${s.exclude_ranking === 1 ? '<span style="color: #ef4444; font-size: 10px; margin-left: 5px; border: 1px solid #ef4444; padding: 1px 4px; border-radius: 4px;">不参与排名</span>' : ''}
+                    </td>
                     <td>${s.school || ''}</td>
                     <td>${s.grade}</td>
                     <td>${s.class_number}</td>
@@ -474,6 +488,7 @@
             document.getElementById('editSchool').value = student.school || '';
             document.getElementById('editGrade').value = student.grade;
             document.getElementById('editClass').value = student.class_number;
+            document.getElementById('editExcludeRanking').checked = student.exclude_ranking === 1;
             document.getElementById('editModal').style.display = 'block';
         }
 
@@ -482,11 +497,12 @@
             const school = document.getElementById('editSchool').value;
             const grade = parseInt(document.getElementById('editGrade').value);
             const class_number = parseInt(document.getElementById('editClass').value);
+            const exclude_ranking = document.getElementById('editExcludeRanking').checked;
 
             await fetch(`/api/admin/student/${editingId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, school, grade, class_number })
+                body: JSON.stringify({ name, school, grade, class_number, exclude_ranking })
             });
 
             closeModal();

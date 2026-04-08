@@ -40,20 +40,18 @@ const rankingCache = {
   }
 };
 
-// 生成屏蔽条件 SQL（不带表别名，用于简单查询）
 function getBlockedConditionSimple() {
   const conditions = BLOCKED_NAME_PREFIXES.map(prefix => 
     `name NOT LIKE '${prefix}%'`
   ).join(' AND ');
-  return conditions;
+  return conditions + ' AND exclude_ranking = 0';
 }
 
-// 生成屏蔽条件 SQL（带表别名 s，用于 JOIN 查询）
 function getBlockedCondition() {
   const conditions = BLOCKED_NAME_PREFIXES.map(prefix => 
     `s.name NOT LIKE '${prefix}%'`
   ).join(' AND ');
-  return conditions;
+  return conditions + ' AND s.exclude_ranking = 0';
 }
 
 // 生成筛选条件 SQL
@@ -106,7 +104,6 @@ router.get('/filter-options', (req, res) => {
   });
 });
 
-// 获取全年级排行榜
 router.get('/school', (req, res) => {
   const { limit = 10, orderBy = 'speed' } = req.query;
   
@@ -114,6 +111,7 @@ router.get('/school', (req, res) => {
   if (orderBy === 'accuracy') orderClause = 'avg_accuracy DESC';
   if (orderBy === 'comprehensive') orderClause = '(avg_speed * 0.6 + avg_accuracy * 0.4) DESC';
 
+  const blockedCond = getBlockedCondition();
   const sql = `
     SELECT s.id, s.name, s.class, s.student_no, s.grade, s.class_number,
            COUNT(t.id) as test_count,
@@ -122,6 +120,7 @@ router.get('/school', (req, res) => {
            ROUND(AVG(t.speed) * 0.6 + AVG(t.accuracy) * 0.4) as comprehensive_score
     FROM students s
     LEFT JOIN test_records t ON s.id = t.student_id AND t.is_valid = 1
+    WHERE ${blockedCond}
     GROUP BY s.id
     HAVING test_count >= 3
     ORDER BY ${orderClause}
@@ -155,6 +154,7 @@ router.get('/classes', (req, res) => {
              ROW_NUMBER() OVER (PARTITION BY s.grade, s.class_number ORDER BY AVG(t.speed) * 0.6 + AVG(t.accuracy) * 0.4 DESC) as rank
       FROM students s
       LEFT JOIN test_records t ON s.id = t.student_id AND t.is_valid = 1
+      WHERE s.exclude_ranking = 0
       GROUP BY s.id
       HAVING COUNT(t.id) >= 3
     )

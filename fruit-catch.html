@@ -572,7 +572,7 @@
                 
                 <button class="btn-start" onclick="restartGame()">再玩一次</button>
                 <div style="margin-top: 15px;">
-                    <a href="practice.html" style="color: #888; text-decoration: none;">返回主菜单</a>
+                    <a href="javascript:void(0)" onclick="goBack()" style="color: #888; text-decoration: none;">返回主菜单</a>
                 </div>
             </div>
         </div>
@@ -1431,13 +1431,59 @@
             document.getElementById('gameOverOverlay').style.display = 'flex';
         }
 
+        function saveCurrentRecord() {
+            if (gameState !== 'PLAYING' || score === 0) return;
+            
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+            if (!studentInfo.id || typeof submitPractice !== 'function') return;
+            
+            const playDuration = Math.floor((Date.now() - startTime) / 1000);
+            const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 0;
+            const wpm = playDuration > 0 ? Math.round((correctKeystrokes + caughtCount * 2) / (playDuration / 60)) : 0;
+            
+            submitPractice({
+                student_id: studentInfo.id,
+                mode: 'fruit-catch',
+                score: score,
+                duration: playDuration,
+                wpm: wpm,
+                accuracy: accuracy,
+                total_chars: totalKeystrokes,
+                correct_chars: correctKeystrokes,
+                error_chars: errorKeystrokes,
+                combo: combo,
+                max_combo: maxCombo,
+                difficulty: difficulty.scoreMult,
+                category: currentWordCategory?.id || 'fruit',
+                category_name: currentWordCategory?.name || '水果',
+                extra_data: { 
+                    caughtCount: caughtCount,
+                    missedCount: missedCount,
+                    category: currentWordCategory?.id || 'fruit',
+                    categoryName: currentWordCategory?.name || '水果'
+                }
+            }).catch(err => console.error('保存记录失败:', err));
+        }
+
         function restartGame() {
-            // 清除游戏结束界面
             document.getElementById('gameOverOverlay').style.display = 'none';
-            // 重新显示词库选择
             backToCategories();
             document.getElementById('startOverlay').style.display = 'flex';
         }
+
+        function goBack() {
+            if (gameState === 'PLAYING' && score > 0) {
+                saveCurrentRecord();
+            }
+            cancelAnimationFrame(animationFrameId);
+            location.href = 'practice.html';
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (gameState === 'PLAYING' && score > 0) {
+                saveCurrentRecord();
+            }
+        });
 
         document.addEventListener('visibilitychange', () => {
             // 无背景音乐，不需要处理

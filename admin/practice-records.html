@@ -636,30 +636,61 @@
 
         <!-- 游戏模式Tab -->
         <div class="game-tabs">
-            <button class="game-tab active" data-game="interstellar-typist">
+            <button class="game-tab active" data-game="overall">
+                <div class="game-tab-icon">👑</div>
+                <div class="game-tab-name">综合全能</div>
+                <div class="game-tab-status">系统自动合算</div>
+            </button>
+            <button class="game-tab" data-game="interstellar-typist">
                 <div class="game-tab-icon">🚀</div>
                 <div class="game-tab-name">星际字航员</div>
-                <div class="game-tab-status">13个排行榜</div>
+                <div class="game-tab-status">基础键盘练习</div>
             </button>
             <button class="game-tab" data-game="fruit-catch">
                 <div class="game-tab-icon">🍎</div>
                 <div class="game-tab-name">接水果</div>
-                <div class="game-tab-status">敬请期待</div>
+                <div class="game-tab-status">拼音入门</div>
             </button>
             <button class="game-tab" data-game="adventure">
                 <div class="game-tab-icon">🗺️</div>
                 <div class="game-tab-name">闯关冒险</div>
-                <div class="game-tab-status">敬请期待</div>
+                <div class="game-tab-status">英语闯关</div>
             </button>
             <button class="game-tab" data-game="classics">
                 <div class="game-tab-icon">📜</div>
                 <div class="game-tab-name">国学打字</div>
-                <div class="game-tab-status">敬请期待</div>
+                <div class="game-tab-status">经典练字</div>
             </button>
         </div>
 
+        <!-- 综合排行榜内容 -->
+        <div class="tab-content active" id="overall">
+            <div class="ranking-section">
+                <!-- 筛选工具栏 (复用结构) -->
+                <div class="filter-toolbar">
+                    <div class="filter-section">
+                        <span class="filter-label-icon">🏫</span>
+                        <select class="overall-school" onchange="refreshData()">
+                            <option value="all">全部学校</option>
+                        </select>
+                        <span class="filter-divider">/</span>
+                        <select class="overall-grade" onchange="refreshData()">
+                            <option value="all">全部年级</option>
+                        </select>
+                    </div>
+                    <div class="filter-section">
+                        <button class="refresh-btn" onclick="refreshData()">🔄 刷新综合榜</button>
+                    </div>
+                </div>
+                <!-- 综合详情网格 -->
+                <div class="rankings-grid" id="overallRankings">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+
         <!-- 星际字航员内容 -->
-        <div class="tab-content active" id="interstellar-typist">
+        <div class="tab-content" id="interstellar-typist">
             <!-- 筛选工具栏 -->
             <div class="ranking-section">
                 <div class="filter-toolbar">
@@ -724,28 +755,31 @@
 
         <!-- 接水果内容 -->
         <div class="tab-content" id="fruit-catch">
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🍎</div>
-                <div class="coming-soon-text">接水果游戏统计</div>
-                <div class="coming-soon-desc">敬请期待...</div>
+            <div class="ranking-section">
+                <div class="section-header">
+                    <div class="section-title">🍎 拼音入门排行榜</div>
+                </div>
+                <div class="rankings-grid" id="fruitRankings"></div>
             </div>
         </div>
 
         <!-- 闯关冒险内容 -->
         <div class="tab-content" id="adventure">
-            <div class="coming-soon">
-                <div class="coming-soon-icon">🗺️</div>
-                <div class="coming-soon-text">闯关冒险统计</div>
-                <div class="coming-soon-desc">敬请期待...</div>
+            <div class="ranking-section">
+                <div class="section-header">
+                    <div class="section-title">🗺️ 英语闯关排行榜</div>
+                </div>
+                <div class="rankings-grid" id="adventureRankings"></div>
             </div>
         </div>
 
         <!-- 国学打字内容 -->
         <div class="tab-content" id="classics">
-            <div class="coming-soon">
-                <div class="coming-soon-icon">📜</div>
-                <div class="coming-soon-text">国学打字统计</div>
-                <div class="coming-soon-desc">敬请期待...</div>
+            <div class="ranking-section">
+                <div class="section-header">
+                    <div class="section-title">📜 国学打字排行榜</div>
+                </div>
+                <div class="rankings-grid" id="classicsRankings"></div>
             </div>
         </div>
     </div>
@@ -837,10 +871,13 @@
             classes: []
         };
 
+        // 当前选中的游戏/模式
+        let currentGame = 'overall';
+
         // Tab切换功能
         document.querySelectorAll('.game-tab').forEach(tab => {
             tab.addEventListener('click', () => {
-                const game = tab.dataset.game;
+                currentGame = tab.dataset.game;
 
                 // 更新Tab状态
                 document.querySelectorAll('.game-tab').forEach(t => t.classList.remove('active'));
@@ -848,7 +885,10 @@
 
                 // 更新内容区域
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                document.getElementById(game).classList.add('active');
+                document.getElementById(currentGame).classList.add('active');
+
+                // 刷新对应排行数据
+                refreshData();
             });
         });
 
@@ -863,17 +903,23 @@
                 if (data.classes) filterOptions.classes = data.classes;
                 
                 // 填充学校下拉框
-                const schoolSelect = document.getElementById('schoolFilter');
-                schoolSelect.innerHTML = '<option value="all">全部学校</option>';
-                filterOptions.schools.forEach(school => {
-                    schoolSelect.innerHTML += `<option value="${school}">${school}</option>`;
+                const schoolSelects = [document.getElementById('schoolFilter'), document.querySelector('.overall-school')];
+                schoolSelects.forEach(select => {
+                    if (!select) return;
+                    select.innerHTML = '<option value="all">全部学校</option>';
+                    filterOptions.schools.forEach(school => {
+                        select.innerHTML += `<option value="${school}">${school}</option>`;
+                    });
                 });
                 
                 // 填充年级下拉框
-                const gradeSelect = document.getElementById('gradeFilterSelect');
-                gradeSelect.innerHTML = '<option value="all">全部年级</option>';
-                filterOptions.grades.forEach(grade => {
-                    gradeSelect.innerHTML += `<option value="${grade}">${grade}年级</option>`;
+                const gradeSelects = [document.getElementById('gradeFilterSelect'), document.querySelector('.overall-grade')];
+                gradeSelects.forEach(select => {
+                    if (!select) return;
+                    select.innerHTML = '<option value="all">全部年级</option>';
+                    filterOptions.grades.forEach(grade => {
+                        select.innerHTML += `<option value="${grade}">${grade}年级</option>`;
+                    });
                 });
                 
                 // 填充班级下拉框
@@ -916,14 +962,22 @@
 
         // 获取当前筛选参数
         function getFilterParams() {
-            const school = document.getElementById('schoolFilter').value;
-            const grade = document.getElementById('gradeFilterSelect').value;
-            const class_number = document.getElementById('classFilter').value;
+            let school, grade, class_number;
+            
+            if (currentGame === 'overall') {
+                school = document.querySelector('.overall-school').value;
+                grade = document.querySelector('.overall-grade').value;
+                class_number = 'all';
+            } else {
+                school = document.getElementById('schoolFilter').value;
+                grade = document.getElementById('gradeFilterSelect').value;
+                class_number = document.getElementById('classFilter').value;
+            }
             
             const params = new URLSearchParams();
             if (school !== 'all') params.append('school', school);
             if (grade !== 'all') params.append('grade', grade);
-            if (class_number !== 'all') params.append('class_number', class_number);
+            if (class_number !== 'all' && currentGame !== 'overall') params.append('class_number', class_number);
             
             return params.toString();
         }
@@ -944,16 +998,80 @@
             showLoading();
 
             try {
-                // 顺序加载，确保卡片按固定顺序显示
-                await loadSingleGameRankings();
-                await loadCumulativeRankings();
-                await loadSpecialRankings();
+                if (currentGame === 'overall') {
+                    await loadOverallRankings();
+                } else if (currentGame === 'interstellar-typist') {
+                    await loadSingleGameRankings();
+                    await loadCumulativeRankings();
+                    await loadSpecialRankings();
+                } else if (currentGame === 'fruit-catch') {
+                    await loadModuleRanking('fruit_score', 'fruitRankings', '🍎 拼音入门');
+                } else if (currentGame === 'adventure') {
+                    await loadModuleRanking('adventure_score', 'adventureRankings', '🗺️ 英语闯关');
+                } else if (currentGame === 'classics') {
+                    await loadModuleRanking('classics_score', 'classicsRankings', '📜 国学打字');
+                }
 
                 updateLastUpdateTime();
             } catch (error) {
                 console.error('加载排行榜失败:', error);
                 showError();
             }
+        }
+
+        // 加载综合排行榜
+        async function loadOverallRankings() {
+            const container = document.getElementById('overallRankings');
+            container.innerHTML = '';
+            const filterParams = getFilterParams();
+
+            // 定义显示卡片
+            const cards = [
+                { field: 'total_score', title: '练习全能榜', icon: '👑', desc: '全模块加权总分' },
+                { field: 'interstellar_score', title: '星际单项榜', icon: '🚀', desc: '键盘基础练习积分' },
+                { field: 'fruit_score', title: '拼音单项榜', icon: '🍎', desc: '拼音打字练习积分' },
+                { field: 'adventure_score', title: '英语单项榜', icon: '🗺️', desc: '英语关卡练习积分' },
+                { field: 'classics_score', title: '国学单项榜', icon: '📜', desc: '国学经典练习积分' }
+            ];
+
+            const cardsHTML = [];
+            for (const card of cards) {
+                try {
+                    const url = `/api/scores/ranking/${card.field}?limit=20${filterParams ? '&' + filterParams : ''}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    cardsHTML.push(createRankingCard(card.icon, card.title, card.desc, data.ranking || [], card.field, '分'));
+                } catch (e) {
+                    cardsHTML.push(createErrorCard(card.icon, card.title, card.desc));
+                }
+            }
+            container.innerHTML = cardsHTML.join('');
+        }
+
+        // 加载子模块通用排行榜
+        async function loadModuleRanking(field, containerId, moduleName) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            const filterParams = getFilterParams();
+
+            const rankings = [
+                { field: field, title: `${moduleName}积分榜`, icon: '🏆', desc: '该模块最佳积分汇总' },
+                { api: 'max-combo', title: `${moduleName}连击榜`, icon: '🔥', desc: '历史单局最高连击' } 
+            ];
+
+            const cardsHTML = [];
+            for (const rank of rankings) {
+                try {
+                    const endpoint = rank.api ? `/api/practice/ranking/${currentGame}?type=${rank.api}` : `/api/scores/ranking/${rank.field}`;
+                    const url = `${endpoint}?limit=20${filterParams ? '&' + filterParams : ''}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    cardsHTML.push(createRankingCard(rank.icon, rank.title, rank.desc, data.ranking || [], rank.field || 'score', '分'));
+                } catch (e) {
+                    cardsHTML.push(createErrorCard(rank.icon, rank.title, rank.desc));
+                }
+            }
+            container.innerHTML = cardsHTML.join('');
         }
 
         // 加载单局表现排行榜
@@ -1082,27 +1200,33 @@
 
         // 显示加载状态
         function showLoading() {
-            const containers = ['singleGameRankings', 'cumulativeRankings', 'specialRankings'];
+            const containers = ['overallRankings', 'singleGameRankings', 'cumulativeRankings', 'specialRankings', 'fruitRankings', 'adventureRankings', 'classicsRankings'];
             containers.forEach(id => {
-                document.getElementById(id).innerHTML = `
-                    <div class="loading" style="grid-column: 1/-1;">
-                        <div class="loading-spinner"></div>
-                        <div>加载中...</div>
-                    </div>
-                `;
+                const el = document.getElementById(id);
+                if (el) {
+                    el.innerHTML = `
+                        <div class="loading" style="grid-column: 1/-1;">
+                            <div class="loading-spinner"></div>
+                            <div>加载中...</div>
+                        </div>
+                    `;
+                }
             });
         }
 
         // 显示错误状态
         function showError() {
-            const containers = ['singleGameRankings', 'cumulativeRankings', 'specialRankings'];
+            const containers = ['overallRankings', 'singleGameRankings', 'cumulativeRankings', 'specialRankings', 'fruitRankings', 'adventureRankings', 'classicsRankings'];
             containers.forEach(id => {
-                document.getElementById(id).innerHTML = `
-                    <div class="empty-state" style="grid-column: 1/-1;">
-                        <div class="empty-state-icon">⚠️</div>
-                        <div>加载失败，请稍后重试</div>
-                    </div>
-                `;
+                const el = document.getElementById(id);
+                if (el) {
+                    el.innerHTML = `
+                        <div class="empty-state" style="grid-column: 1/-1;">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div>加载失败，请稍后重试</div>
+                        </div>
+                    `;
+                }
             });
         }
 
