@@ -193,6 +193,7 @@ const gradeRoutes = require('./routes/grade');
 const authRoutes = require('./routes/auth');
 const rankingRoutes = require('./routes/ranking');
 const testcodeRoutes = require('./routes/testcode');
+const scoresRoutes = require('./routes/scores');
 
 app.use('/api/student', studentRoutes);
 app.use('/api/test', testRoutes);
@@ -203,6 +204,7 @@ app.use('/api/grade', gradeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ranking', rankingRoutes);
 app.use('/api/testcode', testcodeRoutes);
+app.use('/api/scores', scoresRoutes);
 
 // 初始化数据库
 initDatabase();

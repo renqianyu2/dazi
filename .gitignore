@@ -30,3 +30,6 @@ build/
 # 临时文件
 tmp/
 temp/
+database.db-wal
+database.db-shm
+database.db.bak

@@ -129,13 +129,28 @@ function initDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // 练习记录表
+    // 练习记录表 - 增强版多维度记录
     db.run(`CREATE TABLE IF NOT EXISTS practice_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,
       mode TEXT NOT NULL,
       score INTEGER DEFAULT 0,
       duration INTEGER DEFAULT 0,
+      -- 多维度核心数据
+      wpm INTEGER DEFAULT 0,           -- 每分钟字数/词数
+      accuracy INTEGER DEFAULT 0,      -- 准确率 (百分比)
+      total_chars INTEGER DEFAULT 0,    -- 总字符数
+      correct_chars INTEGER DEFAULT 0,   -- 正确字符数
+      error_chars INTEGER DEFAULT 0,     -- 错误字符数
+      -- 游戏特定数据
+      combo INTEGER DEFAULT 0,          -- 连击数
+      max_combo INTEGER DEFAULT 0,      -- 最大连击数
+      level INTEGER DEFAULT 0,         -- 关卡等级
+      difficulty INTEGER DEFAULT 0,     -- 难度等级
+      -- 分类数据
+      category TEXT,                   -- 词库/主题分类
+      category_name TEXT,              -- 分类名称
+      -- 扩展数据 (JSON格式存储其他数据)
       extra_data TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (student_id) REFERENCES students(id)
@@ -148,6 +163,86 @@ function initDatabase() {
     db.run(`CREATE INDEX IF NOT EXISTS idx_practice_records_score ON practice_records(score)`, () => {});
     db.run(`CREATE INDEX IF NOT EXISTS idx_practice_records_created_at ON practice_records(created_at)`, () => {});
     db.run(`CREATE INDEX IF NOT EXISTS idx_practice_records_duration ON practice_records(duration)`, () => {});
+    db.run(`CREATE INDEX IF NOT EXISTS idx_practice_records_wpm ON practice_records(wpm)`, () => {});
+    db.run(`CREATE INDEX IF NOT EXISTS idx_practice_records_accuracy ON practice_records(accuracy)`, () => {});
+
+    // 为已有表添加新字段（兼容老数据库）
+    db.run(`ALTER TABLE practice_records ADD COLUMN wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN total_chars INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN correct_chars INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN error_chars INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN combo INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN max_combo INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN level INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN difficulty INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN category TEXT`, () => {});
+    db.run(`ALTER TABLE practice_records ADD COLUMN category_name TEXT`, () => {});
+
+    // 学生练习积分表
+    db.run(`CREATE TABLE IF NOT EXISTS practice_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      student_id INTEGER NOT NULL UNIQUE,
+      -- 各项目积分
+      interstellar_score INTEGER DEFAULT 0,     -- 星际打字积分
+      fruit_score INTEGER DEFAULT 0,           -- 拼音入门积分
+      adventure_score INTEGER DEFAULT 0,      -- 英语闯关积分
+      classics_score INTEGER DEFAULT 0,       -- 国学打字积分
+      -- 综合积分（所有项目加权总和）
+      total_score INTEGER DEFAULT 0,
+      -- 各项目详细数据
+      interstellar_best_score INTEGER DEFAULT 0,
+      interstellar_best_wpm INTEGER DEFAULT 0,
+      interstellar_best_accuracy INTEGER DEFAULT 0,
+      interstellar_play_count INTEGER DEFAULT 0,
+      interstellar_total_time INTEGER DEFAULT 0,
+      fruit_best_score INTEGER DEFAULT 0,
+      fruit_best_wpm INTEGER DEFAULT 0,
+      fruit_best_accuracy INTEGER DEFAULT 0,
+      fruit_best_combo INTEGER DEFAULT 0,
+      fruit_play_count INTEGER DEFAULT 0,
+      fruit_total_time INTEGER DEFAULT 0,
+      adventure_best_score INTEGER DEFAULT 0,
+      adventure_best_wpm INTEGER DEFAULT 0,
+      adventure_best_accuracy INTEGER DEFAULT 0,
+      adventure_levels_completed INTEGER DEFAULT 0,
+      adventure_play_count INTEGER DEFAULT 0,
+      classics_best_speed INTEGER DEFAULT 0,
+      classics_best_accuracy INTEGER DEFAULT 0,
+      classics_best_wpm INTEGER DEFAULT 0,
+      classics_play_count INTEGER DEFAULT 0,
+      classics_total_time INTEGER DEFAULT 0,
+      -- 更新时间
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES students(id)
+    )`, () => {});
+
+    // 为积分表创建索引
+    db.run(`CREATE INDEX IF NOT EXISTS idx_practice_scores_total ON practice_scores(total_score)`, () => {});
+    db.run(`CREATE INDEX IF NOT EXISTS idx_practice_scores_student ON practice_scores(student_id)`, () => {});
+
+    // 为已有表添加积分字段（兼容老数据库）
+    db.run(`ALTER TABLE practice_scores ADD COLUMN interstellar_best_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN interstellar_best_wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN interstellar_best_accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN interstellar_play_count INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN interstellar_total_time INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN fruit_best_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN fruit_best_wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN fruit_best_accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN fruit_best_combo INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN fruit_play_count INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN fruit_total_time INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN adventure_best_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN adventure_best_wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN adventure_best_accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN adventure_levels_completed INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN adventure_play_count INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN classics_best_speed INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN classics_best_accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN classics_best_wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN classics_play_count INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN classics_total_time INTEGER DEFAULT 0`, () => {});
 
     // 测试验证码表
     db.run(`CREATE TABLE IF NOT EXISTS test_codes (

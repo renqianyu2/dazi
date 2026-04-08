@@ -183,3 +183,84 @@ async function getTestRanking() {
   const res = await fetch(`${API_BASE}/test/ranking`);
   return res.json();
 }
+
+// 获取练习记录排行榜 - 多维度
+async function getPracticeRanking(mode, field = 'score', limit = 50) {
+  const res = await fetch(`${API_BASE}/practice/ranking/${mode}?field=${field}&limit=${limit}`);
+  return res.json();
+}
+
+// 获取学生最佳记录
+async function getStudentBestRecords(studentId, mode) {
+  const res = await fetch(`${API_BASE}/practice/best/${studentId}${mode ? `?mode=${mode}` : ''}`);
+  return res.json();
+}
+
+// 获取练习趋势数据
+async function getPracticeTrend(studentId, mode, days = 30) {
+  const res = await fetch(`${API_BASE}/practice/trend/${studentId}?mode=${mode}&days=${days}`);
+  return res.json();
+}
+
+// 获取增强版练习统计
+async function getEnhancedPracticeStats(mode, grade, classNumber) {
+  let url = `${API_BASE}/practice/stats`;
+  const params = [];
+  if (mode) params.push(`mode=${mode}`);
+  if (grade) params.push(`grade=${grade}`);
+  if (classNumber) params.push(`class_number=${classNumber}`);
+  if (params.length > 0) url += '?' + params.join('&');
+  const res = await fetch(url);
+  return res.json();
+}
+
+// 获取练习记录（增强版，支持日期筛选）
+async function getPracticeRecordsEx(studentId, mode, grade, classNumber, startDate, endDate) {
+  let url = `${API_BASE}/practice/records`;
+  const params = [];
+  if (studentId) params.push(`student_id=${studentId}`);
+  if (mode) params.push(`mode=${mode}`);
+  if (grade) params.push(`grade=${grade}`);
+  if (classNumber) params.push(`class_number=${classNumber}`);
+  if (startDate) params.push(`start_date=${startDate}`);
+  if (endDate) params.push(`end_date=${endDate}`);
+  if (params.length > 0) url += '?' + params.join('&');
+  const res = await fetch(url);
+  return res.json();
+}
+
+// ==================== 练习积分系统 ====================
+
+// 获取学生积分
+async function getStudentScores(studentId) {
+  const res = await fetch(`${API_BASE}/scores/${studentId}`);
+  return res.json();
+}
+
+// 更新学生积分（每次练习后调用）
+async function updateStudentScores(studentId) {
+  const res = await fetch(`${API_BASE}/scores/update/${studentId}`, {
+    method: 'POST'
+  });
+  return res.json();
+}
+
+// 获取积分排行榜
+async function getScoresRanking(field = 'total_score', limit = 50, grade, classNumber) {
+  let url = `${API_BASE}/scores/ranking/${field}?limit=${limit}`;
+  if (grade) url += `&grade=${grade}`;
+  if (classNumber) url += `&class_number=${classNumber}`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+// 获取学生在班级/年级/全校的排名
+async function getStudentRank(studentId, grade, classNumber) {
+  let url = `${API_BASE}/scores/rank/${studentId}`;
+  const params = [];
+  if (grade) params.push(`grade=${grade}`);
+  if (classNumber) params.push(`class_number=${classNumber}`);
+  if (params.length > 0) url += '?' + params.join('&');
+  const res = await fetch(url);
+  return res.json();
+}

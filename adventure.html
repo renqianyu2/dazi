@@ -167,6 +167,23 @@
             width: 100%;
         }
 
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        @media (max-width: 800px) {
+            .category-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .level-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         .level-btn {
             background: rgba(255, 255, 255, 0.1);
             border: 2px solid rgba(255, 255, 255, 0.2);
@@ -304,7 +321,6 @@
 
         .screen-flash.active {
             opacity: 1;
-            animation: flashFade 0.5s ease-out;
         }
 
         @keyframes flashFade {
@@ -376,7 +392,21 @@
     <div class="level-select-container" id="levelSelectArea">
         <h1 style="color: white; font-size: 48px; margin-bottom: 20px; text-shadow: 0 0 20px var(--accent-color);">🗺️ 英语闯关冒险</h1>
         <p style="color: #ddd; font-size: 18px; margin-bottom: 40px;">纯正英文打字发音，告别繁琐视线转移</p>
-        <div class="level-grid" id="levelGrid"></div>
+        
+        <!-- 词库选择区域 -->
+        <div id="categorySelectArea" style="margin-bottom: 30px;">
+            <h3 style="color: var(--accent-color); margin-bottom: 15px;">🎯 选择词库类型</h3>
+            <div class="category-grid" id="categoryGrid"></div>
+        </div>
+        
+        <!-- 关卡选择区域 -->
+        <div id="levelSelectInner" style="display: none;">
+            <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+                <button onclick="backToCategories()" style="background: var(--accent-color); color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold;">← 返回词库</button>
+                <h3 style="color: white; margin: 0;" id="currentCategoryTitle"></h3>
+            </div>
+            <div class="level-grid" id="levelGrid"></div>
+        </div>
     </div>
 
     <!-- 游戏界面 -->
@@ -408,59 +438,258 @@
     <script src="js/sound.js"></script>
     <script src="js/api.js"></script>
     <script>
-        // 词库定义 (英汉双语)
-        const levels = [
-            { theme: 'Spring', zhTheme: '春天', words: [
-                { word: 'spring', meaning: '春天', icon: '🌸' }, { word: 'flower', meaning: '花朵', icon: '🌺' }, { word: 'grass', meaning: '小草', icon: '🌿' },
-                { word: 'tree', meaning: '树木', icon: '🌳' }, { word: 'bird', meaning: '小鸟', icon: '🐦' }, { word: 'wind', meaning: '风', icon: '💨' },
-                { word: 'rain', meaning: '雨', icon: '🌧️' }, { word: 'cloud', meaning: '云朵', icon: '☁️' }, { word: 'sun', meaning: '太阳', icon: '☀️' }, { word: 'warm', meaning: '温暖的', icon: '🌡️' }
-            ]},
-            { theme: 'Animals', zhTheme: '动物', words: [
-                { word: 'cat', meaning: '猫', icon: '🐱' }, { word: 'dog', meaning: '狗', icon: '🐶' }, { word: 'bird', meaning: '鸟', icon: '🕊️' },
-                { word: 'fish', meaning: '鱼', icon: '🐟' }, { word: 'horse', meaning: '马', icon: '🐴' }, { word: 'cow', meaning: '牛', icon: '🐮' },
-                { word: 'sheep', meaning: '羊', icon: '🐑' }, { word: 'pig', meaning: '猪', icon: '🐷' }, { word: 'chicken', meaning: '鸡', icon: '🐔' }, { word: 'duck', meaning: '鸭', icon: '🦆' }
-            ]},
-            { theme: 'Fruits', zhTheme: '水果', words: [
-                { word: 'apple', meaning: '苹果', icon: '🍎' }, { word: 'banana', meaning: '香蕉', icon: '🍌' }, { word: 'grape', meaning: '葡萄', icon: '🍇' },
-                { word: 'orange', meaning: '橙子', icon: '🍊' }, { word: 'pear', meaning: '梨', icon: '🍐' }, { word: 'peach', meaning: '桃子', icon: '🍑' },
-                { word: 'melon', meaning: '西瓜', icon: '🍉' }, { word: 'berry', meaning: '草莓', icon: '🍓' }, { word: 'lemon', meaning: '柠檬', icon: '🍋' }, { word: 'cherry', meaning: '樱桃', icon: '🍒' }
-            ]},
-            { theme: 'Colors', zhTheme: '颜色', words: [
-                { word: 'red', meaning: '红色', icon: '🟥' }, { word: 'yellow', meaning: '黄色', icon: '🟨' }, { word: 'blue', meaning: '蓝色', icon: '🟦' },
-                { word: 'green', meaning: '绿色', icon: '🟩' }, { word: 'white', meaning: '白色', icon: '⚪' }, { word: 'black', meaning: '黑色', icon: '⚫' },
-                { word: 'purple', meaning: '紫色', icon: '🟪' }, { word: 'pink', meaning: '粉色', icon: '🌸' }, { word: 'gray', meaning: '灰色', icon: '🐘' }, { word: 'orange', meaning: '橙色', icon: '🟧' }
-            ]},
-            { theme: 'Numbers', zhTheme: '数字', words: [
-                { word: 'one', meaning: '一', icon: '1️⃣' }, { word: 'two', meaning: '二', icon: '2️⃣' }, { word: 'three', meaning: '三', icon: '3️⃣' },
-                { word: 'four', meaning: '四', icon: '4️⃣' }, { word: 'five', meaning: '五', icon: '5️⃣' }, { word: 'six', meaning: '六', icon: '6️⃣' },
-                { word: 'seven', meaning: '七', icon: '7️⃣' }, { word: 'eight', meaning: '八', icon: '8️⃣' }, { word: 'nine', meaning: '九', icon: '9️⃣' }, { word: 'ten', meaning: '十', icon: '🔟' }
-            ]},
-            { theme: 'Family', zhTheme: '家庭', words: [
-                { word: 'father', meaning: '爸爸', icon: '👨' }, { word: 'mother', meaning: '妈妈', icon: '👩' }, { word: 'brother', meaning: '哥哥/弟弟', icon: '👦' },
-                { word: 'sister', meaning: '姐姐/妹妹', icon: '👧' }, { word: 'baby', meaning: '婴儿', icon: '👶' }, { word: 'uncle', meaning: '叔叔', icon: '🧔' },
-                { word: 'aunt', meaning: '阿姨', icon: '👱‍♀️' }, { word: 'grandpa', meaning: '爷爷', icon: '👴' }, { word: 'grandma', meaning: '奶奶', icon: '👵' }, { word: 'family', meaning: '家庭', icon: '👪' }
-            ]},
-            { theme: 'School', zhTheme: '学校', words: [
-                { word: 'school', meaning: '学校', icon: '🏫' }, { word: 'teacher', meaning: '老师', icon: '👨‍🏫' }, { word: 'student', meaning: '学生', icon: '🎒' },
-                { word: 'book', meaning: '书本', icon: '📚' }, { word: 'pen', meaning: '钢笔', icon: '🖊️' }, { word: 'pencil', meaning: '铅笔', icon: '✏️' },
-                { word: 'desk', meaning: '书桌', icon: '🪑' }, { word: 'paper', meaning: '纸张', icon: '📄' }, { word: 'class', meaning: '班级', icon: '🧑‍🤝‍🧑' }, { word: 'read', meaning: '阅读', icon: '📖' }
-            ]},
-            { theme: 'Body', zhTheme: '身体', words: [
-                { word: 'head', meaning: '头', icon: '👤' }, { word: 'hand', meaning: '手', icon: '🖐️' }, { word: 'foot', meaning: '脚', icon: '🦶' },
-                { word: 'eye', meaning: '眼睛', icon: '👁️' }, { word: 'ear', meaning: '耳朵', icon: '👂' }, { word: 'mouth', meaning: '嘴巴', icon: '👄' },
-                { word: 'nose', meaning: '鼻子', icon: '👃' }, { word: 'heart', meaning: '心脏', icon: '❤️' }, { word: 'face', meaning: '脸颊', icon: '😊' }, { word: 'leg', meaning: '腿', icon: '🦵' }
-            ]},
-            { theme: 'Weather', zhTheme: '天气', words: [
-                { word: 'sunny', meaning: '晴天', icon: '☀️' }, { word: 'rainy', meaning: '雨天', icon: '🌧️' }, { word: 'snowy', meaning: '雪天', icon: '❄️' },
-                { word: 'windy', meaning: '刮风', icon: '🌬️' }, { word: 'cloudy', meaning: '多云', icon: '⛅' }, { word: 'storm', meaning: '风暴', icon: '⛈️' },
-                { word: 'lightning', meaning: '闪电', icon: '⚡' }, { word: 'fog', meaning: '雾', icon: '🌁' }, { word: 'ice', meaning: '冰', icon: '🧊' }, { word: 'hot', meaning: '炎热', icon: '🔥' }
-            ]},
-            { theme: 'Directions', zhTheme: '方向', words: [
-                { word: 'east', meaning: '东', icon: '➡️' }, { word: 'south', meaning: '南', icon: '⬇️' }, { word: 'west', meaning: '西', icon: '⬅️' },
-                { word: 'north', meaning: '北', icon: '⬆️' }, { word: 'up', meaning: '上', icon: '🔼' }, { word: 'down', meaning: '下', icon: '🔽' },
-                { word: 'left', meaning: '左', icon: '◀️' }, { word: 'right', meaning: '右', icon: '▶️' }, { word: 'front', meaning: '前', icon: '⏫' }, { word: 'back', meaning: '后', icon: '⏬' }
-            ]}
+        // 词库分类定义
+        const categories = [
+            { 
+                id: 'nature', 
+                name: '自然季节', 
+                icon: '🌿',
+                levels: [
+                    { theme: 'Spring', zhTheme: '春天', words: [
+                        { word: 'spring', meaning: '春天', icon: '🌸' }, { word: 'flower', meaning: '花朵', icon: '🌺' }, { word: 'grass', meaning: '小草', icon: '🌿' },
+                        { word: 'tree', meaning: '树木', icon: '🌳' }, { word: 'bird', meaning: '小鸟', icon: '🐦' }, { word: 'wind', meaning: '风', icon: '💨' },
+                        { word: 'rain', meaning: '雨', icon: '🌧️' }, { word: 'cloud', meaning: '云朵', icon: '☁️' }, { word: 'sun', meaning: '太阳', icon: '☀️' }, { word: 'warm', meaning: '温暖的', icon: '🌡️' }
+                    ]},
+                    { theme: 'Summer', zhTheme: '夏天', words: [
+                        { word: 'summer', meaning: '夏天', icon: '🌻' }, { word: 'beach', meaning: '海滩', icon: '🏖️' }, { word: 'ocean', meaning: '海洋', icon: '🌊' },
+                        { word: 'wave', meaning: '海浪', icon: '🌊' }, { word: 'swim', meaning: '游泳', icon: '🏊' }, { word: 'sandal', meaning: '凉鞋', icon: '🩴' },
+                        { word: 'sunscreen', meaning: '防晒', icon: '🧴' }, { word: 'sunglasses', meaning: '墨镜', icon: '🕶️' }, { word: 'icecream', meaning: '冰淇淋', icon: '🍦' }, { word: 'juice', meaning: '果汁', icon: '🧃' }
+                    ]},
+                    { theme: 'Autumn', zhTheme: '秋天', words: [
+                        { word: 'autumn', meaning: '秋天', icon: '🍂' }, { word: 'leaf', meaning: '树叶', icon: '🍁' }, { word: 'harvest', meaning: '收获', icon: '🌾' },
+                        { word: 'pumpkin', meaning: '南瓜', icon: '🎃' }, { word: 'apple', meaning: '苹果', icon: '🍎' }, { word: 'grape', meaning: '葡萄', icon: '🍇' },
+                        { word: 'moon', meaning: '月亮', icon: '🌙' }, { word: 'festival', meaning: '节日', icon: '🎃' }, { word: 'cool', meaning: '凉爽', icon: '🍃' }, { word: 'wind', meaning: '秋风', icon: '🍂' }
+                    ]},
+                    { theme: 'Winter', zhTheme: '冬天', words: [
+                        { word: 'winter', meaning: '冬天', icon: '❄️' }, { word: 'snow', meaning: '雪', icon: '🌨️' }, { word: 'snowman', meaning: '雪人', icon: '⛄' },
+                        { word: 'scarf', meaning: '围巾', icon: '🧣' }, { word: 'glove', meaning: '手套', icon: '🧤' }, { word: 'coat', meaning: '外套', icon: '🧥' },
+                        { word: 'hat', meaning: '帽子', icon: '🎩' }, { word: 'boot', meaning: '靴子', icon: '🥾' }, { word: 'fire', meaning: '火', icon: '🔥' }, { word: 'coffee', meaning: '咖啡', icon: '☕' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'animals', 
+                name: '动物世界', 
+                icon: '🐾',
+                levels: [
+                    { theme: 'Farm', zhTheme: '农场动物', words: [
+                        { word: 'cow', meaning: '牛', icon: '🐄' }, { word: 'pig', meaning: '猪', icon: '🐷' }, { word: 'sheep', meaning: '羊', icon: '🐑' },
+                        { word: 'horse', meaning: '马', icon: '🐴' }, { word: 'chicken', meaning: '鸡', icon: '🐔' }, { word: 'duck', meaning: '鸭', icon: '🦆' },
+                        { word: 'goat', meaning: '山羊', icon: '🐐' }, { word: 'donkey', meaning: '驴', icon: '🫏' }, { word: 'rooster', meaning: '公鸡', icon: '🐓' }, { word: 'turkey', meaning: '火鸡', icon: '🦃' }
+                    ]},
+                    { theme: 'Pet', zhTheme: '宠物', words: [
+                        { word: 'cat', meaning: '猫', icon: '🐱' }, { word: 'dog', meaning: '狗', icon: '🐶' }, { word: 'rabbit', meaning: '兔子', icon: '🐰' },
+                        { word: 'hamster', meaning: '仓鼠', icon: '🐹' }, { word: 'fish', meaning: '鱼', icon: '🐟' }, { word: 'turtle', meaning: '乌龟', icon: '🐢' },
+                        { word: 'parrot', meaning: '鹦鹉', icon: '🦜' }, { word: 'goldfish', meaning: '金鱼', icon: '🐠' }, { word: 'kitten', meaning: '小猫', icon: '😺' }, { word: 'puppy', meaning: '小狗', icon: '🐕' }
+                    ]},
+                    { theme: 'Wild', zhTheme: '野生动物', words: [
+                        { word: 'lion', meaning: '狮子', icon: '🦁' }, { word: 'tiger', meaning: '老虎', icon: '🐯' }, { word: 'elephant', meaning: '大象', icon: '🐘' },
+                        { word: 'monkey', meaning: '猴子', icon: '🐵' }, { word: 'bear', meaning: '熊', icon: '🐻' }, { word: 'panda', meaning: '熊猫', icon: '🐼' },
+                        { word: 'giraffe', meaning: '长颈鹿', icon: '🦒' }, { word: 'zebra', meaning: '斑马', icon: '🦓' }, { word: 'kangaroo', meaning: '袋鼠', icon: '🦘' }, { word: 'snake', meaning: '蛇', icon: '🐍' }
+                    ]},
+                    { theme: 'Ocean', zhTheme: '海洋动物', words: [
+                        { word: 'whale', meaning: '鲸鱼', icon: '🐋' }, { word: 'dolphin', meaning: '海豚', icon: '🐬' }, { word: 'shark', meaning: '鲨鱼', icon: '🦈' },
+                        { word: 'crab', meaning: '螃蟹', icon: '🦀' }, { word: 'lobster', meaning: '龙虾', icon: '🦞' }, { word: 'octopus', meaning: '章鱼', icon: '🐙' },
+                        { word: 'jellyfish', meaning: '水母', icon: '🪼' }, { word: 'seahorse', meaning: '海马', icon: '🐟' }, { word: 'penguin', meaning: '企鹅', icon: '🐧' }, { word: 'seal', meaning: '海豹', icon: '🦭' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'food', 
+                name: '美食水果', 
+                icon: '🍎',
+                levels: [
+                    { theme: 'Fruit', zhTheme: '水果', words: [
+                        { word: 'apple', meaning: '苹果', icon: '🍎' }, { word: 'banana', meaning: '香蕉', icon: '🍌' }, { word: 'grape', meaning: '葡萄', icon: '🍇' },
+                        { word: 'orange', meaning: '橙子', icon: '🍊' }, { word: 'pear', meaning: '梨', icon: '🍐' }, { word: 'peach', meaning: '桃子', icon: '🍑' },
+                        { word: 'watermelon', meaning: '西瓜', icon: '🍉' }, { word: 'strawberry', meaning: '草莓', icon: '🍓' }, { word: 'lemon', meaning: '柠檬', icon: '🍋' }, { word: 'cherry', meaning: '樱桃', icon: '🍒' }
+                    ]},
+                    { theme: 'Vegetable', zhTheme: '蔬菜', words: [
+                        { word: 'carrot', meaning: '胡萝卜', icon: '🥕' }, { word: 'tomato', meaning: '番茄', icon: '🍅' }, { word: 'potato', meaning: '土豆', icon: '🥔' },
+                        { word: 'broccoli', meaning: '西兰花', icon: '🥦' }, { word: 'corn', meaning: '玉米', icon: '🌽' }, { word: 'pepper', meaning: '辣椒', icon: '🌶️' },
+                        { word: 'onion', meaning: '洋葱', icon: '🧅' }, { word: 'garlic', meaning: '大蒜', icon: '🧄' }, { word: 'mushroom', meaning: '蘑菇', icon: '🍄' }, { word: 'eggplant', meaning: '茄子', icon: '🍆' }
+                    ]},
+                    { theme: 'Meat', zhTheme: '肉类', words: [
+                        { word: 'beef', meaning: '牛肉', icon: '🥩' }, { word: 'chicken', meaning: '鸡肉', icon: '🍗' }, { word: 'pork', meaning: '猪肉', icon: '🥓' },
+                        { word: 'fish', meaning: '鱼肉', icon: '🐟' }, { word: 'shrimp', meaning: '虾', icon: '🦐' }, { word: 'steak', meaning: '牛排', icon: '🥩' },
+                        { word: 'sausage', meaning: '香肠', icon: '🌭' }, { word: 'hamburger', meaning: '汉堡', icon: '🍔' }, { word: 'bacon', meaning: '培根', icon: '🥓' }, { word: 'meatball', meaning: '肉丸', icon: '🍡' }
+                    ]},
+                    { theme: 'Dessert', zhTheme: '甜点', words: [
+                        { word: 'cake', meaning: '蛋糕', icon: '🎂' }, { word: 'cookie', meaning: '饼干', icon: '🍪' }, { word: 'candy', meaning: '糖果', icon: '🍬' },
+                        { word: 'chocolate', meaning: '巧克力', icon: '🍫' }, { word: 'icecream', meaning: '冰淇淋', icon: '🍦' }, { word: 'pie', meaning: '派', icon: '🥧' },
+                        { word: 'doughnut', meaning: '甜甜圈', icon: '🍩' }, { word: 'pudding', meaning: '布丁', icon: '🍮' }, { word: 'lollipop', meaning: '棒棒糖', icon: '🍭' }, { word: 'honey', meaning: '蜂蜜', icon: '🍯' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'daily', 
+                name: '日常生活', 
+                icon: '🏠',
+                levels: [
+                    { theme: 'Kitchen', zhTheme: '厨房用品', words: [
+                        { word: 'plate', meaning: '盘子', icon: '🍽️' }, { word: 'cup', meaning: '杯子', icon: '🥤' }, { word: 'fork', meaning: '叉子', icon: '🍴' },
+                        { word: 'spoon', meaning: '勺子', icon: '🥄' }, { word: 'knife', meaning: '刀', icon: '🔪' }, { word: 'bowl', meaning: '碗', icon: '🥣' },
+                        { word: 'pot', meaning: '锅', icon: '🍲' }, { word: 'pan', meaning: '平底锅', icon: '🍳' }, { word: 'kettle', meaning: '水壶', icon: '🫖' }, { word: 'glass', meaning: '玻璃杯', icon: '🥛' }
+                    ]},
+                    { theme: 'Furniture', zhTheme: '家具', words: [
+                        { word: 'chair', meaning: '椅子', icon: '🪑' }, { word: 'table', meaning: '桌子', icon: '🪵' }, { word: 'sofa', meaning: '沙发', icon: '🛋️' },
+                        { word: 'bed', meaning: '床', icon: '🛏️' }, { word: 'lamp', meaning: '台灯', icon: '💡' }, { word: 'clock', meaning: '时钟', icon: '🕐' },
+                        { word: 'mirror', meaning: '镜子', icon: '🪞' }, { word: 'curtain', meaning: '窗帘', icon: '🪟' }, { word: 'carpet', meaning: '地毯', icon: '🟫' }, { word: 'pillow', meaning: '枕头', icon: '😴' }
+                    ]},
+                    { theme: 'Clothes', zhTheme: '服装', words: [
+                        { word: 'shirt', meaning: '衬衫', icon: '👔' }, { word: 'pants', meaning: '裤子', icon: '👖' }, { word: 'dress', meaning: '裙子', icon: '👗' },
+                        { word: 'jacket', meaning: '夹克', icon: '🧥' }, { word: 'shoe', meaning: '鞋子', icon: '👟' }, { word: 'sock', meaning: '袜子', icon: '🧦' },
+                        { word: 'hat', meaning: '帽子', icon: '🎩' }, { word: 'glove', meaning: '手套', icon: '🧤' }, { word: 'scarf', meaning: '围巾', icon: '🧣' }, { word: 'umbrella', meaning: '雨伞', icon: '☂️' }
+                    ]},
+                    { theme: 'Bathroom', zhTheme: '浴室用品', words: [
+                        { word: 'toothbrush', meaning: '牙刷', icon: '🪥' }, { word: 'toothpaste', meaning: '牙膏', icon: '🧴' }, { word: 'soap', meaning: '肥皂', icon: '🧼' },
+                        { word: 'shampoo', meaning: '洗发水', icon: '🧴' }, { word: 'towel', meaning: '毛巾', icon: '🛁' }, { word: 'mirror', meaning: '镜子', icon: '🪞' },
+                        { word: 'comb', meaning: '梳子', icon: '🪮' }, { word: 'razor', meaning: '剃须刀', icon: '🪒' }, { word: 'bathtub', meaning: '浴缸', icon: '🛁' }, { word: 'water', meaning: '水', icon: '🚿' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'transport', 
+                name: '交通出行', 
+                icon: '🚗',
+                levels: [
+                    { theme: 'Car', zhTheme: '汽车', words: [
+                        { word: 'car', meaning: '汽车', icon: '🚗' }, { word: 'truck', meaning: '卡车', icon: '🚚' }, { word: 'bus', meaning: '公交车', icon: '🚌' },
+                        { word: 'taxi', meaning: '出租车', icon: '🚕' }, { word: 'jeep', meaning: '吉普车', icon: '🚙' }, { word: 'ambulance', meaning: '救护车', icon: '🚑' },
+                        { word: 'firetruck', meaning: '消防车', icon: '🚒' }, { word: 'police', meaning: '警车', icon: '🚓' }, { word: 'tire', meaning: '轮胎', icon: '🛞' }, { word: 'engine', meaning: '发动机', icon: '⚙️' }
+                    ]},
+                    { theme: 'Vehicle', zhTheme: '其他车辆', words: [
+                        { word: 'bicycle', meaning: '自行车', icon: '🚲' }, { word: 'motorcycle', meaning: '摩托车', icon: '🏍️' }, { word: 'train', meaning: '火车', icon: '🚂' },
+                        { word: 'airplane', meaning: '飞机', icon: '✈️' }, { word: 'ship', meaning: '轮船', icon: '🚢' }, { word: 'boat', meaning: '小船', icon: '⛵' },
+                        { word: 'helicopter', meaning: '直升机', icon: '🚁' }, { word: 'rocket', meaning: '火箭', icon: '🚀' }, { word: 'subway', meaning: '地铁', icon: '🚇' }, { word: 'tractor', meaning: '拖拉机', icon: '🚜' }
+                    ]},
+                    { theme: 'Traffic', zhTheme: '交通标志', words: [
+                        { word: 'stop', meaning: '停止', icon: '🛑' }, { word: 'go', meaning: '通行', icon: '➡️' }, { word: 'crosswalk', meaning: '人行横道', icon: '🚶' },
+                        { word: 'parking', meaning: '停车', icon: '🅿️' }, { word: 'gas', meaning: '加油站', icon: '⛽' }, { word: 'tunnel', meaning: '隧道', icon: '🚇' },
+                        { word: 'bridge', meaning: '桥梁', icon: '🌉' }, { word: 'station', meaning: '车站', icon: '🚉' }, { word: 'airport', meaning: '机场', icon: '🛫' }, { word: 'port', meaning: '港口', icon: '⚓' }
+                    ]},
+                    { theme: 'Travel', zhTheme: '旅行用品', words: [
+                        { word: 'suitcase', meaning: '行李箱', icon: '🧳' }, { word: 'passport', meaning: '护照', icon: '📔' }, { word: 'ticket', meaning: '机票', icon: '🎫' },
+                        { word: 'camera', meaning: '相机', icon: '📷' }, { word: 'map', meaning: '地图', icon: '🗺️' }, { word: 'guide', meaning: '指南', icon: '📖' },
+                        { word: 'hotel', meaning: '酒店', icon: '🏨' }, { word: 'beach', meaning: '海滩', icon: '🏖️' }, { word: 'mountain', meaning: '山', icon: '⛰️' }, { word: 'compass', meaning: '指南针', icon: '🧭' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'school', 
+                name: '校园生活', 
+                icon: '🏫',
+                levels: [
+                    { theme: 'Classroom', zhTheme: '教室物品', words: [
+                        { word: 'desk', meaning: '课桌', icon: '🪑' }, { word: 'chair', meaning: '椅子', icon: '🪑' }, { word: 'blackboard', meaning: '黑板', icon: '⬛' },
+                        { word: 'chalk', meaning: '粉笔', icon: '🖍️' }, { word: 'eraser', meaning: '橡皮', icon: '🧽' }, { word: 'marker', meaning: '马克笔', icon: '🖊️' },
+                        { word: 'pointer', meaning: '教鞭', icon: '🖐️' }, { word: 'globe', meaning: '地球仪', icon: '🌍' }, { word: 'map', meaning: '地图', icon: '🗺️' }, { word: 'clock', meaning: '时钟', icon: '🕐' }
+                    ]},
+                    { theme: 'Stationery', zhTheme: '文具', words: [
+                        { word: 'pencil', meaning: '铅笔', icon: '✏️' }, { word: 'pen', meaning: '钢笔', icon: '🖊️' }, { word: 'eraser', meaning: '橡皮擦', icon: '🧽' },
+                        { word: 'ruler', meaning: '尺子', icon: '📏' }, { word: 'notebook', meaning: '笔记本', icon: '📓' }, { word: 'book', meaning: '书', icon: '📖' },
+                        { word: 'backpack', meaning: '书包', icon: '🎒' }, { word: 'pencilcase', meaning: '笔袋', icon: '👝' }, { word: 'scissors', meaning: '剪刀', icon: '✂️' }, { word: 'glue', meaning: '胶水', icon: '🧴' }
+                    ]},
+                    { theme: 'Subject', zhTheme: '学科', words: [
+                        { word: 'math', meaning: '数学', icon: '➕' }, { word: 'english', meaning: '英语', icon: '🔤' }, { word: 'science', meaning: '科学', icon: '🔬' },
+                        { word: 'history', meaning: '历史', icon: '📜' }, { word: 'music', meaning: '音乐', icon: '🎵' }, { word: 'art', meaning: '美术', icon: '🎨' },
+                        { word: 'PE', meaning: '体育', icon: '⚽' }, { word: 'computer', meaning: '电脑', icon: '💻' }, { word: 'chinese', meaning: '语文', icon: '📝' }, { word: 'geography', meaning: '地理', icon: '🌍' }
+                    ]},
+                    { theme: 'Activity', zhTheme: '校园活动', words: [
+                        { word: 'class', meaning: '上课', icon: '📚' }, { word: 'study', meaning: '学习', icon: '📖' }, { word: 'exam', meaning: '考试', icon: '📝' },
+                        { word: 'homework', meaning: '作业', icon: '📋' }, { word: 'lunch', meaning: '午餐', icon: '🍱' }, { word: 'recess', meaning: '课间', icon: '🕐' },
+                        { word: 'library', meaning: '图书馆', icon: '📚' }, { word: 'playground', meaning: '操场', icon: '🏃' }, { word: 'sport', meaning: '运动', icon: '⚽' }, { word: 'friend', meaning: '朋友', icon: '👫' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'body', 
+                name: '身体部位', 
+                icon: '💪',
+                levels: [
+                    { theme: 'Head', zhTheme: '头部', words: [
+                        { word: 'head', meaning: '头', icon: '🗣️' }, { word: 'hair', meaning: '头发', icon: '💇' }, { word: 'face', meaning: '脸', icon: '😊' },
+                        { word: 'eye', meaning: '眼睛', icon: '👁️' }, { word: 'nose', meaning: '鼻子', icon: '👃' }, { word: 'mouth', meaning: '嘴巴', icon: '👄' },
+                        { word: 'ear', meaning: '耳朵', icon: '👂' }, { word: 'tooth', meaning: '牙齿', icon: '😁' }, { word: 'tongue', meaning: '舌头', icon: '👅' }, { word: 'neck', meaning: '脖子', icon: '👤' }
+                    ]},
+                    { theme: 'Body', zhTheme: '身体', words: [
+                        { word: 'hand', meaning: '手', icon: '✋' }, { word: 'arm', meaning: '手臂', icon: '💪' }, { word: 'finger', meaning: '手指', icon: '☝️' },
+                        { word: 'leg', meaning: '腿', icon: '🦵' }, { word: 'foot', meaning: '脚', icon: '🦶' }, { word: 'knee', meaning: '膝盖', icon: '🦵' },
+                        { word: 'shoulder', meaning: '肩膀', icon: '💪' }, { word: 'back', meaning: '背部', icon: '🔙' }, { word: 'chest', meaning: '胸部', icon: '👔' }, { word: 'stomach', meaning: '肚子', icon: '🤰' }
+                    ]},
+                    { theme: 'Organ', zhTheme: '器官', words: [
+                        { word: 'heart', meaning: '心脏', icon: '❤️' }, { word: 'brain', meaning: '大脑', icon: '🧠' }, { word: 'bone', meaning: '骨头', icon: '🦴' },
+                        { word: 'skin', meaning: '皮肤', icon: '👤' }, { word: 'blood', meaning: '血液', icon: '🩸' }, { word: 'lung', meaning: '肺', icon: '🫁' },
+                        { word: 'liver', meaning: '肝脏', icon: '🫀' }, { word: 'kidney', meaning: '肾脏', icon: '🫘' }, { word: 'stomach', meaning: '胃', icon: '🤢' }, { word: 'muscle', meaning: '肌肉', icon: '💪' }
+                    ]},
+                    { theme: 'Action', zhTheme: '动作', words: [
+                        { word: 'run', meaning: '跑', icon: '🏃' }, { word: 'walk', meaning: '走', icon: '🚶' }, { word: 'jump', meaning: '跳', icon: '⬆️' },
+                        { word: 'swim', meaning: '游泳', icon: '🏊' }, { word: 'fly', meaning: '飞', icon: '🕊️' }, { word: 'eat', meaning: '吃', icon: '🍽️' },
+                        { word: 'drink', meaning: '喝', icon: '🥤' }, { word: 'sleep', meaning: '睡觉', icon: '😴' }, { word: 'think', meaning: '思考', icon: '🤔' }, { word: 'speak', meaning: '说话', icon: '🗣️' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'technology', 
+                name: '科技数码', 
+                icon: '💻',
+                levels: [
+                    { theme: 'Device', zhTheme: '电子设备', words: [
+                        { word: 'computer', meaning: '电脑', icon: '💻' }, { word: 'laptop', meaning: '笔记本', icon: '🖥️' }, { word: 'phone', meaning: '手机', icon: '📱' },
+                        { word: 'tablet', meaning: '平板', icon: '📲' }, { word: 'watch', meaning: '手表', icon: '⌚' }, { word: 'camera', meaning: '相机', icon: '📷' },
+                        { word: 'radio', meaning: '收音机', icon: '📻' }, { word: 'television', meaning: '电视', icon: '📺' }, { word: 'speaker', meaning: '音箱', icon: '🔊' }, { word: 'printer', meaning: '打印机', icon: '🖨️' }
+                    ]},
+                    { theme: 'Internet', zhTheme: '网络相关', words: [
+                        { word: 'internet', meaning: '互联网', icon: '🌐' }, { word: 'website', meaning: '网站', icon: '🌍' }, { word: 'email', meaning: '邮件', icon: '📧' },
+                        { word: 'download', meaning: '下载', icon: '⬇️' }, { word: 'upload', meaning: '上传', icon: '⬆️' }, { word: 'password', meaning: '密码', icon: '🔑' },
+                        { word: 'keyboard', meaning: '键盘', icon: '⌨️' }, { word: 'mouse', meaning: '鼠标', icon: '🖱️' }, { word: 'screen', meaning: '屏幕', icon: '🖥️' }, { word: 'wifi', meaning: '无线网', icon: '📶' }
+                    ]},
+                    { theme: 'App', zhTheme: '应用软件', words: [
+                        { word: 'music', meaning: '音乐', icon: '🎵' }, { word: 'video', meaning: '视频', icon: '🎬' }, { word: 'game', meaning: '游戏', icon: '🎮' },
+                        { word: 'photo', meaning: '照片', icon: '📷' }, { word: 'message', meaning: '消息', icon: '💬' }, { word: 'calendar', meaning: '日历', icon: '📅' },
+                        { word: 'calculator', meaning: '计算器', icon: '🔢' }, { word: 'clock', meaning: '时钟', icon: '⏰' }, { word: 'alarm', meaning: '闹钟', icon: '⏰' }, { word: 'map', meaning: '地图', icon: '🗺️' }
+                    ]},
+                    { theme: 'Science', zhTheme: '科学', words: [
+                        { word: 'science', meaning: '科学', icon: '🔬' }, { word: 'robot', meaning: '机器人', icon: '🤖' }, { word: 'rocket', meaning: '火箭', icon: '🚀' },
+                        { word: 'satellite', meaning: '卫星', icon: '🛰️' }, { word: 'telescope', meaning: '望远镜', icon: '🔭' }, { word: 'microscope', meaning: '显微镜', icon: '🔬' },
+                        { word: 'experiment', meaning: '实验', icon: '🧪' }, { word: 'atom', meaning: '原子', icon: '⚛️' }, { word: 'energy', meaning: '能量', icon: '⚡' }, { word: 'DNA', meaning: '基因', icon: '🧬' }
+                    ]}
+                ]
+            },
+            { 
+                id: 'emotion', 
+                name: '情感表达', 
+                icon: '😊',
+                levels: [
+                    { theme: 'Emotion', zhTheme: '情绪', words: [
+                        { word: 'happy', meaning: '开心', icon: '😊' }, { word: 'sad', meaning: '难过', icon: '😢' }, { word: 'angry', meaning: '生气', icon: '😠' },
+                        { word: 'scared', meaning: '害怕', icon: '😨' }, { word: 'surprised', meaning: '惊讶', icon: '😲' }, { word: 'tired', meaning: '疲劳', icon: '😫' },
+                        { word: 'hungry', meaning: '饥饿', icon: '😋' }, { word: 'thirsty', meaning: '口渴', icon: '🥤' }, { word: 'bored', meaning: '无聊', icon: '😴' }, { word: 'excited', meaning: '兴奋', icon: '🤩' }
+                    ]},
+                    { theme: 'Action', zhTheme: '表情动作', words: [
+                        { word: 'smile', meaning: '微笑', icon: '😊' }, { word: 'laugh', meaning: '大笑', icon: '😄' }, { word: 'cry', meaning: '哭', icon: '😭' },
+                        { word: 'wave', meaning: '挥手', icon: '👋' }, { word: 'clap', meaning: '鼓掌', icon: '👏' }, { word: 'hug', meaning: '拥抱', icon: '🤗' },
+                        { word: 'kiss', meaning: '亲吻', icon: '😘' }, { word: 'point', meaning: '指向', icon: '☝️' }, { word: 'thumbsup', meaning: '点赞', icon: '👍' }, { word: 'thumbsdown', meaning: '差评', icon: '👎' }
+                    ]},
+                    { theme: 'Social', zhTheme: '社交', words: [
+                        { word: 'friend', meaning: '朋友', icon: '👫' }, { word: 'family', meaning: '家人', icon: '👪' }, { word: 'classmate', meaning: '同学', icon: '👨‍🎓' },
+                        { word: 'teacher', meaning: '老师', icon: '👨‍🏫' }, { word: 'neighbor', meaning: '邻居', icon: '🏠' }, { word: 'team', meaning: '团队', icon: '👥' },
+                        { word: 'party', meaning: '聚会', icon: '🎉' }, { word: 'gift', meaning: '礼物', icon: '🎁' }, { word: 'letter', meaning: '信', icon: '💌' }, { word: 'phone', meaning: '电话', icon: '📞' }
+                    ]},
+                    { theme: 'Character', zhTheme: '性格', words: [
+                        { word: 'kind', meaning: '善良', icon: '👼' }, { word: 'brave', meaning: '勇敢', icon: '🦸' }, { word: 'clever', meaning: '聪明', icon: '🧠' },
+                        { word: 'funny', meaning: '有趣', icon: '😜' }, { word: 'shy', meaning: '害羞', icon: '😳' }, { word: 'lazy', meaning: '懒惰', icon: '😴' },
+                        { word: 'polite', meaning: '礼貌', icon: '🤝' }, { word: 'honest', meaning: '诚实', icon: '🤥' }, { word: 'helpful', meaning: '乐于助人', icon: '💪' }, { word: 'patient', meaning: '耐心', icon: '⏳' }
+                    ]}
+                ]
+            }
         ];
+
+        // 当前选中的词库
+        let currentCategory = null;
+
+        // 兼容旧代码的 levels 变量（第一个分类的第一个关卡）
+        let levels = categories[0]?.levels || [];
 
         // 网络同步引擎 (排行榜)
         const netEngine = {
@@ -560,6 +789,13 @@
         let gameState = 'MENU';
         let typedCount = 0;
         
+        // 多维度数据统计
+        let totalKeystrokes = 0;      // 总按键次数
+        let correctKeystrokes = 0;    // 正确按键次数
+        let errorKeystrokes = 0;      // 错误按键次数
+        let wordsCompleted = 0;       // 完成的单词数
+        let levelStartTime = 0;      // 关卡开始时间
+        
         const flashEl = document.getElementById('screenFlash');
         const synth = window.speechSynthesis;
         let selectedVoice = null;
@@ -643,21 +879,58 @@
             }
         }
 
-        function initLevels() {
+        function initCategories() {
+            const grid = document.getElementById('categoryGrid');
+            grid.innerHTML = categories.map((cat, i) => {
+                return `<div class="level-btn" onclick="selectCategory('${cat.id}')" style="padding: 20px 30px;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">${cat.icon}</div>
+                    <div class="level-theme">${cat.name}</div>
+                    <div style="font-size: 12px; color: #aaa; margin-top: 5px;">${cat.levels.length} 个主题</div>
+                </div>`;
+            }).join('');
+            
+            // 显示词库选择区域
+            document.getElementById('categorySelectArea').style.display = 'block';
+            document.getElementById('levelSelectInner').style.display = 'none';
+            
+            // Initialization point for socket - 选关界面不显示排行榜
+            netEngine.init(false);
+        }
+
+        function selectCategory(categoryId) {
+            currentCategory = categories.find(c => c.id === categoryId);
+            if (!currentCategory) return;
+            
+            levels = currentCategory.levels;
+            
+            // 显示关卡选择区域
+            document.getElementById('categorySelectArea').style.display = 'none';
+            document.getElementById('levelSelectInner').style.display = 'block';
+            document.getElementById('currentCategoryTitle').innerHTML = `${currentCategory.icon} ${currentCategory.name}`;
+            
+            renderLevelGrid();
+        }
+
+        function backToCategories() {
+            currentCategory = null;
+            initCategories();
+        }
+
+        function renderLevelGrid() {
             const grid = document.getElementById('levelGrid');
             grid.innerHTML = levels.map((level, i) => {
-                const locked = i > 0 && !completedLevels.includes(i - 1);
-                const completed = completedLevels.includes(i);
-                return `<div class="level-btn ${locked ? 'locked' : ''} ${completed ? 'completed' : ''}"
-                        onclick="${locked ? '' : `startLevel(${i})`}">
+                const completed = completedLevels.includes(`${currentCategory.id}_${i}`);
+                return `<div class="level-btn ${completed ? 'completed' : ''}"
+                        onclick="startLevel(${i})">
                     <div class="level-number">Level ${i + 1}</div>
                     <div class="level-theme">${level.theme} - ${level.zhTheme}</div>
                     ${completed ? '<div style="margin-top:10px;font-size:20px;">✅</div>' : ''}
                 </div>`;
             }).join('');
-            
-            // Initialization point for socket - 选关界面不显示排行榜
-            netEngine.init(false);
+        }
+
+        function initLevels() {
+            initCategories();
         }
 
         function startLevel(levelIdx) {
@@ -666,6 +939,13 @@
             score = 0;
             typedCount = 0;
             gameState = 'PLAYING';
+            levelStartTime = Date.now();
+            
+            // 重置多维度统计
+            totalKeystrokes = 0;
+            correctKeystrokes = 0;
+            errorKeystrokes = 0;
+            wordsCompleted = 0;
             
             document.getElementById('levelSelectArea').style.display = 'none';
             document.getElementById('gameArea').style.display = 'flex';
@@ -722,10 +1002,12 @@
             
             const char = e.key.toLowerCase();
             const activeWord = levels[currentLevel].words[currentWordIndex].word.toLowerCase();
+            totalKeystrokes++;
             
             if (char === activeWord[typedCount]) {
                 // Correct char
                 typedCount++;
+                correctKeystrokes++;
                 playSfx('hit');
                 score += 5;
                 document.getElementById('scoreValue').textContent = score;
@@ -736,6 +1018,7 @@
                 if (typedCount === activeWord.length) {
                     // Word completed
                     score += 20; // Bonus
+                    wordsCompleted++;
                     document.getElementById('scoreValue').textContent = score;
                     netEngine.updateScore(score);
                     
@@ -753,14 +1036,21 @@
                 }
             } else {
                 // Wrong char
+                errorKeystrokes++;
                 playSfx('miss');
                 
                 // Show red char
                 updateWordDisplay(true);
                 
+                // Screen flash effect
                 flashEl.classList.remove('active');
                 void flashEl.offsetWidth;
                 flashEl.classList.add('active');
+                
+                // Clear flash after animation
+                setTimeout(() => {
+                    flashEl.classList.remove('active');
+                }, 300);
                 
                 // Screen shake
                 const card = document.getElementById('playCard');
@@ -778,12 +1068,21 @@
 
         function completeLevel() {
             gameState = 'COMPLETED';
-            if (!completedLevels.includes(currentLevel)) {
-                completedLevels.push(currentLevel);
+            // 使用词库ID和关卡索引组合作为唯一标识
+            const levelKey = `${currentCategory.id}_${currentLevel}`;
+            if (!completedLevels.includes(levelKey)) {
+                completedLevels.push(levelKey);
                 localStorage.setItem('completedAdvLevels', JSON.stringify(completedLevels));
             }
 
             playSfx('complete');
+            
+            // 计算时长
+            const duration = Math.round((Date.now() - levelStartTime) / 1000);
+            // 计算准确率
+            const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 0;
+            // 计算 WPM (每分钟完成的字符数)
+            const wpm = duration > 0 ? Math.round((correctKeystrokes + wordsCompleted * 2) / (duration / 60)) : 0;
 
             // Save record
             const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
@@ -792,8 +1091,22 @@
                     student_id: studentInfo.id,
                     mode: 'adventure-english',
                     score: score,
-                    duration: 0,
-                    extra_data: { level: currentLevel + 1, theme: levels[currentLevel].theme }
+                    duration: duration,
+                    wpm: wpm,
+                    accuracy: accuracy,
+                    total_chars: totalKeystrokes,
+                    correct_chars: correctKeystrokes,
+                    error_chars: errorKeystrokes,
+                    level: currentLevel + 1,
+                    category: currentCategory.id,
+                    category_name: currentCategory.name,
+                    extra_data: { 
+                        category: currentCategory.id,
+                        categoryName: currentCategory.name,
+                        level: currentLevel + 1, 
+                        theme: levels[currentLevel].theme,
+                        wordsCompleted: wordsCompleted
+                    }
                 }).catch(err => console.error('Saving failed:', err));
             }
 
@@ -808,7 +1121,8 @@
             document.getElementById('gameArea').style.display = 'none';
             document.getElementById('backBtn').setAttribute('href', 'practice.html');
             document.getElementById('backBtn').removeAttribute('onclick');
-            initLevels();
+            // 返回到词库选择
+            backToCategories();
         }
 
         // Init the menu

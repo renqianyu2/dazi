@@ -1550,7 +1550,7 @@
         const colors = ['#00f2ff', '#ff2d55', '#00ff88', '#fff', '#ff9f00', '#bf00ff'];
 
         const game = {
-            score: 0, combo: 0, maxCombo: 0, totalChars: 0, correctChars: 0, startTime: null, enemies: [], lockedEnemy: null, isRunning: false, isPaused: false, speed: 0.8, difficultyFactor: 1.0, isFrenzy: false, lastScoreUpdate: 0,
+            score: 0, combo: 0, maxCombo: 0, totalChars: 0, correctChars: 0, errorChars: 0, startTime: null, enemies: [], lockedEnemy: null, isRunning: false, isPaused: false, speed: 0.8, difficultyFactor: 1.0, isFrenzy: false, lastScoreUpdate: 0,
             triggeredIdioms: [], maxWPM: 0, hasTriggeredFirstStrike: false, hasTriggeredRecovery: false, shields: 3, isShowingIdiom: false, myBestRank: null, reachedFirstPlace: false, rankTracker: {},
             start() {
                 // 读取难度设置
@@ -1726,6 +1726,7 @@
                         this.hit(this.lockedEnemy);
                     } else { 
                         this.combo = 0; 
+                        this.errorChars++;
                         this.lockedEnemy.justMadeError = true;
                         // 震动错误提示
                         this.lockedEnemy.element.style.transform = `translateY(${this.lockedEnemy.y}px) translateX(10px)`;
@@ -1743,6 +1744,7 @@
                         this.hit(match); 
                     } else { 
                         this.combo = 0; 
+                        this.errorChars++;
                     }
                 }
             },
@@ -1993,16 +1995,24 @@
                 const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
                 if (studentInfo.id && typeof submitPractice !== 'undefined') {
                     try {
+                        const duration = Math.round((Date.now() - this.startTime) / 1000);
+                        const accuracy = this.totalChars > 0 ? Math.round((this.correctChars / this.totalChars) * 100) : 0;
+                        const wpm = duration > 0 ? Math.round((this.correctChars / 5) / (duration / 60)) : 0;
+                        
                         const saveData = {
                             student_id: studentInfo.id,
                             mode: 'interstellar-typist',
                             score: this.score,
-                            duration: Math.round((Date.now() - this.startTime) / 1000),
+                            duration: duration,
+                            wpm: wpm,
+                            accuracy: accuracy,
+                            total_chars: this.totalChars,
+                            correct_chars: this.correctChars,
+                            error_chars: this.errorChars,
+                            combo: this.combo,
+                            max_combo: this.maxCombo,
                             extra_data: {
-                                wpm: parseInt(document.getElementById('wpm').innerText),
-                                accuracy: document.getElementById('accuracy').innerText,
                                 idioms: this.triggeredIdioms.map(i => ({ word: i.word, meaning: i.meaning })),
-                                maxCombo: this.maxCombo,
                                 bestRank: this.myBestRank,
                                 reachedFirst: this.reachedFirstPlace,
                                 playerCount: document.querySelectorAll('.lb-item').length
@@ -2027,6 +2037,7 @@
                 this.combo = 0;
                 this.totalChars = 0;
                 this.correctChars = 0;
+                this.errorChars = 0;
                 this.lockedEnemy = null;
                 this.isFrenzy = false;
                 document.body.classList.remove('frenzy-mode');
@@ -2056,16 +2067,24 @@
             const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
             if (studentInfo.id && typeof submitPractice !== 'undefined') {
                 try {
+                    const duration = Math.round((Date.now() - game.startTime) / 1000);
+                    const accuracy = game.totalChars > 0 ? Math.round((game.correctChars / game.totalChars) * 100) : 0;
+                    const wpm = duration > 0 ? Math.round((game.correctChars / 5) / (duration / 60)) : 0;
+                    
                     const saveData = {
                         student_id: studentInfo.id,
                         mode: 'interstellar-typist',
                         score: game.score,
-                        duration: Math.round((Date.now() - game.startTime) / 1000),
+                        duration: duration,
+                        wpm: wpm,
+                        accuracy: accuracy,
+                        total_chars: game.totalChars,
+                        correct_chars: game.correctChars,
+                        error_chars: game.errorChars,
+                        combo: game.combo,
+                        max_combo: game.maxCombo,
                         extra_data: {
-                            wpm: parseInt(document.getElementById('wpm').innerText),
-                            accuracy: document.getElementById('accuracy').innerText,
                             idioms: game.triggeredIdioms.map(i => ({ word: i.word, meaning: i.meaning })),
-                            maxCombo: game.maxCombo,
                             bestRank: game.myBestRank,
                             reachedFirst: game.reachedFirstPlace,
                             playerCount: document.querySelectorAll('.lb-item').length

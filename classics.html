@@ -145,6 +145,12 @@
         let currentIndex = 0;
         let startTime = null;
         let timerInterval = null;
+        
+        // 多维度数据统计
+        let totalKeystrokes = 0;      // 总按键次数
+        let correctKeystrokes = 0;    // 正确按键次数
+        let errorKeystrokes = 0;      // 错误按键次数
+        let showPinyin = true;       // 是否显示拼音
         let showPinyin = true;
 
         // 初始化静音按钮状态
@@ -161,6 +167,10 @@
             currentClassic = classics[type];
             currentIndex = 0;
             startTime = Date.now();
+            // 重置多维度统计
+            totalKeystrokes = 0;
+            correctKeystrokes = 0;
+            errorKeystrokes = 0;
             document.getElementById('selectScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'block';
             renderText();
@@ -204,8 +214,10 @@
 
         document.getElementById('inputBox').addEventListener('compositionend', function(e) {
             const input = (e.data || e.target.value.trim())[0];
+            totalKeystrokes++;
             if (input === currentClassic.chars[currentIndex].c) {
                 Sound.playCorrect();
+                correctKeystrokes++;
                 currentIndex++;
 
                 if (currentIndex >= currentClassic.chars.length) {
@@ -214,26 +226,43 @@
 
                     const elapsed = Math.floor((Date.now() - startTime) / 1000);
                     const speed = Math.round((currentIndex / elapsed) * 60);
+                    // 计算准确率
+                    const accuracy = totalKeystrokes > 0 ? Math.round((correctKeystrokes / totalKeystrokes) * 100) : 100;
+                    // WPM 就是速度
+                    const wpm = speed;
 
                     // 保存练习记录
                     const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    const classicsMode = currentClassic.title === '百家姓' ? 'baijiaxing' : 'qianziwen';
                     if (studentInfo.id) {
                         submitPractice({
                             student_id: studentInfo.id,
-                            mode: 'classics-' + (currentClassic.title === '百家姓' ? 'baijiaxing' : 'qianziwen'),
+                            mode: 'classics-' + classicsMode,
                             score: speed,
                             duration: elapsed,
-                            extra_data: { type: currentClassic.title, chars: currentIndex }
+                            wpm: wpm,
+                            accuracy: accuracy,
+                            total_chars: totalKeystrokes,
+                            correct_chars: correctKeystrokes,
+                            error_chars: errorKeystrokes,
+                            category: classicsMode,
+                            category_name: currentClassic.title,
+                            extra_data: { 
+                                type: currentClassic.title, 
+                                chars: currentIndex,
+                                pinyinEnabled: showPinyin
+                            }
                         }).catch(err => console.error('保存记录失败:', err));
                     }
 
-                    alert(`🎉 完成！用时：${document.getElementById('time').textContent}\n速度：${speed} 字/分钟`);
+                    alert(`🎉 完成！用时：${document.getElementById('time').textContent}\n速度：${speed} 字/分钟\n准确率：${accuracy}%`);
                     backToSelect();
                 } else {
                     renderText();
                 }
             } else {
                 Sound.playError();
+                errorKeystrokes++;
             }
             setTimeout(() => e.target.value = '', 200);
         });
