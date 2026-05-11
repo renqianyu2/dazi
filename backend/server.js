@@ -45,17 +45,21 @@ function setTextCache(data) {
 const playerSocketMap = new Map(); // socketId -> username
 
 io.on('connection', (socket) => {
+    console.log(`[Socket] 新连接: ${socket.id} (当前在线: ${activePlayers.size})`);
+
     socket.on('join_typist', (data) => {
         if(!data.username || !data.user_id) return;
-        
+
         // 清理旧的 socket 连接（如果存在）
         for (const [sid, uname] of playerSocketMap.entries()) {
             if (uname === data.username) {
+                activePlayers.delete(uname);
                 playerSocketMap.delete(sid);
+                console.log(`[Socket] 清理旧连接: ${uname} (${sid})`);
                 break;
             }
         }
-        
+
         activePlayers.set(data.username, {
             userId: data.user_id,
             username: data.username,
@@ -67,6 +71,7 @@ io.on('connection', (socket) => {
         });
         playerSocketMap.set(socket.id, data.username);
         leaderboardDirty = true;
+        console.log(`[Socket] 玩家加入: ${data.username} (${data.user_id}), 当前在线: ${activePlayers.size}`);
     });
 
     socket.on('update_score', (data) => {
@@ -119,6 +124,7 @@ io.on('connection', (socket) => {
             activePlayers.delete(username);
             playerSocketMap.delete(socket.id);
             leaderboardDirty = true;
+            console.log(`[Socket] 玩家断开: ${username}, 当前在线: ${activePlayers.size}`);
         }
     });
 });

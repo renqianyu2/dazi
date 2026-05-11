@@ -178,9 +178,15 @@ async function getInterstellarHighestScoreRanking(limit = 10) {
   return res.json();
 }
 
-// 获取正式测试排行榜
-async function getTestRanking() {
-  const res = await fetch(`${API_BASE}/test/ranking`);
+// 获取正式测试排行榜（支持学校/年级/班级筛选）
+async function getTestRanking(school, grade, classNumber) {
+  let url = `${API_BASE}/test/ranking`;
+  const params = [];
+  if (school) params.push(`school=${encodeURIComponent(school)}`);
+  if (grade) params.push(`grade=${grade}`);
+  if (classNumber) params.push(`class_number=${classNumber}`);
+  if (params.length > 0) url += '?' + params.join('&');
+  const res = await fetch(url);
   return res.json();
 }
 
@@ -246,8 +252,9 @@ async function updateStudentScores(studentId) {
 }
 
 // 获取积分排行榜
-async function getScoresRanking(field = 'total_score', limit = 50, grade, classNumber) {
+async function getScoresRanking(field = 'total_score', limit = 50, school, grade, classNumber) {
   let url = `${API_BASE}/scores/ranking/${field}?limit=${limit}`;
+  if (school) url += `&school=${encodeURIComponent(school)}`;
   if (grade) url += `&grade=${grade}`;
   if (classNumber) url += `&class_number=${classNumber}`;
   const res = await fetch(url);

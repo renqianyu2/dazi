@@ -229,6 +229,89 @@
             margin-top: 10px;
             text-align: center;
         }
+        .score-explain {
+            background: linear-gradient(135deg, #f0f4ff 0%, #ede9fe 100%);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.8;
+            border-left: 4px solid #667eea;
+        }
+        .score-explain strong {
+            color: #764ba2;
+        }
+        .level-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .level-novice { background: #95a5a6; }
+        .level-advanced { background: #3498db; }
+        .level-expert { background: #9b59b6; }
+        .level-specialist { background: #e67e22; }
+        .level-master { background: #e74c3c; box-shadow: 0 0 10px rgba(231, 76, 60, 0.5); }
+        .stat-grid-mini {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 4px;
+        }
+        .stat-cell {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #7f8c8d;
+            white-space: nowrap;
+        }
+        .rank-score-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 2px;
+        }
+        .rank-filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .rank-filters select {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 120px;
+            flex: 1;
+            max-width: 180px;
+            color: #333;
+            transition: border-color 0.3s;
+        }
+        .rank-filters select:focus {
+            outline: none;
+            border-color: #DC143C;
+            box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.1);
+        }
+        .rank-filters select:disabled {
+            background: #f5f5f5;
+            color: #bbb;
+            cursor: not-allowed;
+        }
+        .rank-filters-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: bold;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -394,6 +477,18 @@
                 <button class="rank-tab active" onclick="switchRankTab('practice')">练习模式</button>
                 <button class="rank-tab" onclick="switchRankTab('test')">正式测试</button>
             </div>
+            <div class="rank-filters">
+                <span class="rank-filters-label">筛选：</span>
+                <select id="filterSchool" onchange="onFilterSchoolChange()">
+                    <option value="">全部学校</option>
+                </select>
+                <select id="filterGrade" onchange="onFilterGradeChange()">
+                    <option value="">全部年级</option>
+                </select>
+                <select id="filterClass" onchange="loadRanking()" disabled>
+                    <option value="">全部班级</option>
+                </select>
+            </div>
             <div id="rankingContainer"></div>
         </div>
     </div>
@@ -430,38 +525,63 @@
 
         // 加载排行榜
         async function loadRanking() {
+            const school = document.getElementById('filterSchool').value || undefined;
+            const grade = document.getElementById('filterGrade').value || undefined;
+            const cls = document.getElementById('filterClass').value || undefined;
             if (currentRankMode === 'practice') {
-                await loadPracticeRanking();
+                await loadPracticeRanking(school, grade, cls);
             } else {
-                await loadTestRanking();
+                await loadTestRanking(school, grade, cls);
             }
         }
 
         // 加载练习模式排行榜
-        async function loadPracticeRanking() {
+        async function loadPracticeRanking(school, grade, cls) {
             try {
-                const { ranking } = await getInterstellarHighestScoreRanking(10);
+                const data = await getScoresRanking('total_score', 10, school, grade, cls);
                 const container = document.getElementById('rankingContainer');
                 const medals = ['🥇', '🥈', '🥉'];
                 const classes = ['rank-gold', 'rank-silver', 'rank-bronze'];
 
-                if (!ranking || ranking.length === 0) {
-                    container.innerHTML = '<div style="text-align: center; padding: 30px; color: #999;">暂无练习记录</div>';
+                const ranking = data.ranking || [];
+                if (ranking.length === 0) {
+                    container.innerHTML = '<div class="score-explain"><strong>💡 综合积分说明：</strong>总分 = 键盘基础(30%) + 拼音入门(25%) + 英语闯关(25%) + 国学打字(20%)<br>每项得分 = 打字速度(50%) + 准确率(30%) + 游戏技术(20%) &nbsp;|&nbsp; 🌟 满分标准：每分钟80字 + 全部正确 + 四个游戏都玩过</div><div style="text-align: center; padding: 30px; color: #999;">暂无练习记录</div>';
                     return;
                 }
 
-                let html = '';
+                let html = '<div class="score-explain"><strong>💡 综合积分说明：</strong>总分 = 键盘基础(30%) + 拼音入门(25%) + 英语闯关(25%) + 国学打字(20%)<br>每项得分 = 打字速度(50%) + 准确率(30%) + 游戏技术(20%) &nbsp;|&nbsp; 🌟 满分标准：每分钟80字 + 全部正确 + 四个游戏都玩过</div>';
+
                 ranking.slice(0, 10).forEach((item, i) => {
                     const medal = i < 3 ? medals[i] : (i + 1);
                     const cls = i < 3 ? classes[i] : '';
+                    const totalScore = item.total_score || 0;
+
+                    // 等级判定 (与practice.html一致)
+                    let levelClass = 'level-novice';
+                    let levelName = '入门';
+                    if (totalScore >= 80) { levelClass = 'level-master'; levelName = '宗师'; }
+                    else if (totalScore >= 60) { levelClass = 'level-specialist'; levelName = '专精'; }
+                    else if (totalScore >= 40) { levelClass = 'level-expert'; levelName = '达人'; }
+                    else if (totalScore >= 20) { levelClass = 'level-advanced'; levelName = '进阶'; }
+
                     html += `<div class="rank-item">
                         <div class="rank-number ${cls}">${medal}</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: bold; font-size: 18px;">${item.name}</div>
+                            <div style="font-weight: bold; font-size: 18px;">
+                                ${item.name}
+                                <span class="level-badge ${levelClass}">${levelName}</span>
+                            </div>
                             <div style="color: #888; font-size: 14px;">${item.school || ''} ${item.class || ''}</div>
+                            <div class="stat-grid-mini">
+                                <span class="stat-cell">🚀${item.interstellar_best_wpm || 0}W / ${item.interstellar_best_accuracy || 0}%</span>
+                                <span class="stat-cell">🍎${item.fruit_best_wpm || 0}W / 🔥${item.fruit_best_combo || 0}</span>
+                                <span class="stat-cell">🗺️${item.adventure_best_wpm || 0}W / 🚩L${item.adventure_levels_completed || 0}</span>
+                                <span class="stat-cell">📜${item.classics_best_wpm || 0}W / ${item.classics_best_accuracy || 0}%</span>
+                            </div>
                         </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 24px; font-weight: bold; color: #DC143C;">${item.score} 分</div>
+                        <div style="text-align: right; min-width: 90px;">
+                            <div class="rank-score-label">综合积分</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #764ba2;">${totalScore}</div>
                         </div>
                     </div>`;
                 });
@@ -473,9 +593,9 @@
         }
 
         // 加载正式测试排行榜
-        async function loadTestRanking() {
+        async function loadTestRanking(school, grade, cls) {
             try {
-                const { ranking } = await getTestRanking();
+                const { ranking } = await getTestRanking(school, grade, cls);
                 const container = document.getElementById('rankingContainer');
                 const medals = ['🥇', '🥈', '🥉'];
                 const classes = ['rank-gold', 'rank-silver', 'rank-bronze'];
@@ -517,7 +637,94 @@
         }
 
         loadRanking();
-        setInterval(loadRanking, 5000);
+        setInterval(loadRanking, 2000);
+
+        // ==================== 排行榜筛选功能 ====================
+        const gradeLabels = ['', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '七年级', '八年级'];
+
+        // 加载筛选选项
+        async function loadFilterOptions() {
+            try {
+                const res = await fetch('/api/ranking/filter-options');
+                const data = await res.json();
+
+                const schoolSelect = document.getElementById('filterSchool');
+                data.schools.forEach(school => {
+                    const opt = document.createElement('option');
+                    opt.value = school;
+                    opt.textContent = school;
+                    schoolSelect.appendChild(opt);
+                });
+
+                const gradeSelect = document.getElementById('filterGrade');
+                data.grades.forEach(g => {
+                    const opt = document.createElement('option');
+                    opt.value = g;
+                    opt.textContent = gradeLabels[g] || g + '年级';
+                    gradeSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('加载筛选选项失败', err);
+            }
+        }
+
+        // 学校变更时重置年级和班级
+        function onFilterSchoolChange() {
+            const gradeSelect = document.getElementById('filterGrade');
+            gradeSelect.value = '';
+            const classSelect = document.getElementById('filterClass');
+            classSelect.innerHTML = '<option value="">全部班级</option>';
+            classSelect.disabled = true;
+            loadRanking();
+        }
+
+        // 年级变更时更新班级选项
+        function onFilterGradeChange() {
+            updateFilterClasses();
+            loadRanking();
+        }
+
+        // 根据学校和年级更新班级下拉
+        async function updateFilterClasses() {
+            const school = document.getElementById('filterSchool').value;
+            const grade = document.getElementById('filterGrade').value;
+            const classSelect = document.getElementById('filterClass');
+
+            classSelect.innerHTML = '<option value="">全部班级</option>';
+            if (!school || !grade) {
+                classSelect.disabled = true;
+                return;
+            }
+            classSelect.disabled = false;
+
+            try {
+                const res = await fetch('/api/admin/students');
+                const data = await res.json();
+                const students = data.students || [];
+                const classNumbers = new Set();
+                students.forEach(s => {
+                    if (s.school === school && s.grade === parseInt(grade)) {
+                        classNumbers.add(s.class_number);
+                    }
+                });
+                const sorted = Array.from(classNumbers).sort((a, b) => a - b);
+                sorted.forEach(num => {
+                    const opt = document.createElement('option');
+                    opt.value = num;
+                    opt.textContent = num + '班';
+                    classSelect.appendChild(opt);
+                });
+            } catch (err) {
+                for (let i = 1; i <= 10; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = i + '班';
+                    classSelect.appendChild(opt);
+                }
+            }
+        }
+
+        loadFilterOptions();
 
         function logout() {
             if (confirm('确定要退出登录吗？')) {

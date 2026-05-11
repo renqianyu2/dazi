@@ -18,9 +18,26 @@ router.post('/submit', (req, res) => {
   );
 });
 
-// 获取排行榜（历史最高分，去重，每人取最高分）
+// 获取排行榜（历史最高分，去重，每人取最高分，支持学校/年级/班级筛选）
 router.get('/ranking', (req, res) => {
-  // 先查询每个人的最高速度，然后再找对应的记录
+  const { school, grade, class_number } = req.query;
+
+  let whereClause = 's.exclude_ranking = 0';
+  const params = [];
+
+  if (school) {
+    whereClause += ' AND s.school = ?';
+    params.push(school);
+  }
+  if (grade) {
+    whereClause += ' AND s.grade = ?';
+    params.push(grade);
+  }
+  if (class_number) {
+    whereClause += ' AND s.class_number = ?';
+    params.push(class_number);
+  }
+
   const query = `
     SELECT s.id, s.name, s.class, t1.speed, t1.accuracy
     FROM students s
@@ -30,11 +47,12 @@ router.get('/ranking', (req, res) => {
       WHERE is_valid = 1
       GROUP BY student_id
     ) t1 ON s.id = t1.student_id
+    WHERE ${whereClause}
     ORDER BY t1.speed DESC, t1.accuracy DESC
     LIMIT 20
   `;
 
-  db.all(query, [], (err, rows) => {
+  db.all(query, params, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: '数据库错误: ' + err.message });
     }

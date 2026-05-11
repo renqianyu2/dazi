@@ -78,6 +78,7 @@ router.post('/update/:student_id', (req, res) => {
             MAX(score) as best_score,
             MAX(wpm) as best_wpm,
             MAX(accuracy) as best_accuracy,
+            MAX(max_combo) as best_combo,
             COUNT(*) as play_count,
             SUM(duration) as total_time
             FROM practice_records WHERE student_id = ? AND mode = 'interstellar-typist'`,
@@ -262,7 +263,7 @@ router.get('/:student_id', (req, res) => {
 // 获取积分排行榜
 router.get('/ranking/:field', (req, res) => {
     const { field } = req.params;
-    const { limit = 50, grade, class_number } = req.query;
+    const { limit = 50, school, grade, class_number } = req.query;
     
     // 允许排序的字段
     const allowedFields = ['total_score', 'interstellar_score', 'fruit_score', 'adventure_score', 'classics_score'];
@@ -271,6 +272,10 @@ router.get('/ranking/:field', (req, res) => {
     let whereClause = 's.exclude_ranking = 0';
     const params = [];
     
+    if (school) {
+        whereClause += ' AND s.school = ?';
+        params.push(school);
+    }
     if (grade) {
         whereClause += ' AND s.grade = ?';
         params.push(grade);

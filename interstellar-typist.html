@@ -869,11 +869,6 @@
 
     <!-- SOCKET.IO -->
     <script src="/socket.io/socket.io.js"></script>
-    <script>
-        if (typeof io === 'undefined') {
-            document.write('<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"><\\/script>');
-        }
-    </script>
     <script src="js/api.js"></script>
     <script>
         class MusicEngine {
@@ -1160,13 +1155,32 @@
                     this.renderLeaderboard([{ username: this.myName, score: 0, wpm: 0, bestRank: null }]);
 
                     if (typeof io !== 'undefined') {
-                        this.socket = io();
-                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+                        this.socket = io(window.location.origin, {
+                            transports: ['websocket', 'polling'],
+                            reconnection: true,
+                            reconnectionAttempts: 5,
+                            reconnectionDelay: 1000
+                        });
+
+                        this.socket.on('connect', () => {
+                            console.log('[多人联机] 已连接服务器', this.socket.id);
+                            this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+                        });
+
+                        this.socket.on('connect_error', (err) => {
+                            console.warn('[多人联机] 连接失败:', err.message);
+                        });
+
+                        this.socket.on('disconnect', (reason) => {
+                            console.warn('[多人联机] 已断开连接:', reason);
+                        });
 
                         this.socket.on('leaderboard_update', (list) => {
                             if (list && list.length > 0) this.renderLeaderboard(list);
                         });
                         this.socket.on('class_progress_update', (data) => this.updateClassProgress(data));
+                    } else {
+                        console.warn('[多人联机] socket.io 未加载，多人功能不可用');
                     }
                 } catch(e) {
                     console.warn("Socket.io initialization skipped or failed", e);

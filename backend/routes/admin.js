@@ -612,4 +612,25 @@ router.post('/student/:id/logout', (req, res) => {
   );
 });
 
+// 批量强制学生登出（管理员）
+router.post('/students/batch-logout', (req, res) => {
+  const { student_ids } = req.body;
+
+  if (!student_ids || !Array.isArray(student_ids) || student_ids.length === 0) {
+    return res.status(400).json({ error: '请提供要登出的学生ID列表' });
+  }
+
+  const placeholders = student_ids.map(() => '?').join(',');
+  db.run(
+    `UPDATE students SET session_token = NULL, login_ip = NULL, login_time = NULL WHERE id IN (${placeholders})`,
+    student_ids,
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: '批量强制登出失败' });
+      }
+      res.json({ success: true, message: `已强制登出 ${this.changes} 名学生` });
+    }
+  );
+});
+
 module.exports = router;
