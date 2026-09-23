@@ -1137,8 +1137,12 @@
             myId: null,
             myName: '访客',
             lastRank: null,
+            _lastLeaderboardData: null,
+            _inited: false,
             init() {
+                if (this._inited) return;
                 try {
+                    this._inited = true;
                     const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
                     if (studentInfo.id && studentInfo.name) {
                         this.myId = studentInfo.id;
@@ -1151,9 +1155,7 @@
                     document.getElementById('playerInfoUI').style.display = 'block';
                     document.getElementById('leaderboardSidebar').style.display = 'flex';
 
-                    // 预先渲染自己
-                    this.renderLeaderboard([{ username: this.myName, score: 0, wpm: 0, bestRank: null }]);
-
+                    // 先建 socket，再渲染自己（避免渲染异常导致连接丢失）
                     if (typeof io !== 'undefined') {
                         this.socket = io(window.location.origin, {
                             transports: ['websocket', 'polling'],
@@ -1182,8 +1184,12 @@
                     } else {
                         console.warn('[多人联机] socket.io 未加载，多人功能不可用');
                     }
+
+                    // 预先渲染自己
+                    this.renderLeaderboard([{ username: this.myName, score: 0, wpm: 0, bestRank: null }]);
                 } catch(e) {
                     console.warn("Socket.io initialization skipped or failed", e);
+                    if (!this.socket) this._inited = false;
                 }
             },
             updateScore(score, wpm) {
@@ -1205,14 +1211,14 @@
                 const ul = document.getElementById('lbList');
                 const ITEM_HEIGHT = 45; 
                 
-                // 使用节流：只有数据显著变化时才更新 DOM
+                // 使用节流：只有数据显著变化时才更新 DOM（人数变化也必须更新）
                 if (this._lastLeaderboardData) {
                     const oldData = this._lastLeaderboardData;
-                    const isSameLength = list.length === oldData.length;
-                    const hasSignificantChange = isSameLength && list.some((p, i) => 
-                        p.score !== oldData[i]?.score || p.username !== oldData[i]?.username
-                    );
-                    if (!hasSignificantChange) return;
+                    const hasChange = list.length !== oldData.length ||
+                        list.some((p, i) =>
+                            p.score !== oldData[i]?.score || p.username !== oldData[i]?.username
+                        );
+                    if (!hasChange) return;
                 }
                 this._lastLeaderboardData = list;
                 
@@ -1295,14 +1301,16 @@
                 // 移除断开的玩家 - 只需要移除未使用的元素
                 existingItems.forEach(li => li.remove());
 
-                // Chase UI Logic
+                // Chase UI Logic（game 可能在页面加载早期尚未初始化）
                 const chaseHud = document.getElementById('chaseHud');
-                if (myCurrentRank > 1 && game.isRunning) {
+                let gameRunning = false;
+                try { gameRunning = typeof game !== 'undefined' && game.isRunning; } catch (e) { gameRunning = false; }
+                if (myCurrentRank > 1 && gameRunning) {
                     const target = list[myCurrentRank - 2]; // The person right above me
                     const diff = target.score - myScore;
                     chaseHud.innerHTML = `距离第 <span id="chaseRank">${myCurrentRank - 1}</span> 名 <span class="target-name" id="chaseName">${target.username}</span> 还差 <span class="target-diff" id="chaseDiff">${diff}</span> 分`;
                     chaseHud.style.display = 'block';
-                } else if (myCurrentRank === 1 && game.isRunning) {
+                } else if (myCurrentRank === 1 && gameRunning) {
                     chaseHud.innerHTML = `你是第一名！继续保持！`;
                     chaseHud.style.display = 'block';
                 } else {
@@ -1316,7 +1324,7 @@
                         const surpassed = list[myCurrentRank] ? list[myCurrentRank].username : '前一名玩家';
                         this.showOvertake(surpassed);
                         audio.playOvertake();
-                        if(game.triggerIdiom) game.triggerIdiom('逆袭类');
+                        try { if (typeof game !== 'undefined' && game.triggerIdiom) game.triggerIdiom('逆袭类'); } catch (e) {}
                     } else if (myCurrentRank > this.lastRank) {
                         // Dropped!
                         const myLi = Array.from(ul.children).find(el => el.dataset.name === this.myName);
@@ -1350,6 +1358,8 @@
                 setTimeout(() => banner.classList.remove('show'), 2000);
             }
         };
+        // 页面加载即连接排行榜（game 尚未定义时靠 renderLeaderboard 的 try/catch 兜底）
+        netEngine.init();
 
         // 激光绘制
         const laserCanvas = document.getElementById('laserCanvas');
@@ -2062,6 +2072,8 @@
                 this.start();
             }
         };
+        // game 定义完成后再连一次（防止首屏 init 在 TDZ 中失败）
+        netEngine.init();
 
         async function confirmExit() {
             if (game.isRunning && game.score > 0) {

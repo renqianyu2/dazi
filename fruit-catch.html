@@ -921,8 +921,11 @@
             socket: null,
             myId: null,
             myName: '访客',
+            _inited: false,
             init() {
+                if (this._inited) return;
                 try {
+                    this._inited = true;
                     const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
                     if (studentInfo.id && studentInfo.name) {
                         this.myId = studentInfo.id;
@@ -935,19 +938,21 @@
                     document.getElementById('playerInfoUI').style.display = 'block';
                     document.getElementById('leaderboardSidebar').style.display = 'flex';
 
-                    // 预先渲染自己
-                    this.renderLeaderboard([{ username: this.myName, score: 0 }]);
-
                     if (typeof io !== 'undefined') {
                         this.socket = io();
-                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
-
+                        this.socket.on('connect', () => {
+                            this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+                        });
                         this.socket.on('leaderboard_update', (list) => {
                             if (list && list.length > 0) this.renderLeaderboard(list);
                         });
                     }
+
+                    // 预先渲染自己
+                    this.renderLeaderboard([{ username: this.myName, score: 0 }]);
                 } catch(e) {
                     console.warn("Socket.io initialization skipped or failed", e);
+                    if (!this.socket) this._inited = false;
                 }
             },
             updateScore(score) {
@@ -1006,6 +1011,7 @@
                 existingItems.forEach(li => li.remove());
             }
         };
+        netEngine.init();
 
         // 当前使用的词库（从词库分类中获取）
         let words = wordCategories[0]?.words || [];

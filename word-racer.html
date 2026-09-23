@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>苹湖拼音打字系统 - 单词飞车</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        :root {
+            --accent-color: #00e5ff;
+            --accent2: #ffd700;
+            --danger-color: #ff3b5c;
+            --success-color: #00ff88;
+            --boost: #ff2d9b;
+        }
+
+        body {
+            background: #06121a;
+            background-image: radial-gradient(circle at 20% 10%, #0a2a3d 0%, transparent 45%),
+                radial-gradient(circle at 80% 90%, #1a0f35 0%, transparent 45%);
+            color: white;
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 40px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(0, 229, 255, 0.35);
+            z-index: 50;
+        }
+
+        .header-left { display: flex; align-items: center; gap: 20px; }
+
+        .mute-btn {
+            background: none;
+            border: 1px solid rgba(0, 229, 255, 0.5);
+            color: var(--accent-color);
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .mute-btn:hover { background: rgba(0, 229, 255, 0.15); }
+        .mute-btn.muted { color: #555; border-color: #333; }
+
+        .stat-group { display: flex; gap: 36px; }
+        .stat-item { text-align: center; }
+
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--accent-color);
+            opacity: 0.75;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 800;
+            font-family: monospace;
+        }
+
+        #gameArea {
+            flex: 1 1 auto;
+            min-height: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stage {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            right: 290px;
+        }
+
+        #raceSvg { width: 100%; height: 100%; display: block; }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(4, 12, 18, 0.92);
+            z-index: 100;
+        }
+
+        .menu-card {
+            background: #0a1a26;
+            padding: 48px 56px;
+            border-radius: 16px;
+            text-align: center;
+            border: 1px solid var(--accent-color);
+            box-shadow: 0 0 50px rgba(0, 229, 255, 0.25);
+            max-width: 640px;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            margin: 0 0 10px;
+            font-weight: 900;
+            letter-spacing: 8px;
+            text-shadow: 0 0 20px var(--accent-color);
+        }
+
+        .btn-start {
+            margin-top: 24px;
+            padding: 12px 50px;
+            font-size: 20px;
+            background: transparent;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 4px;
+            border-radius: 6px;
+        }
+
+        .btn-start:hover {
+            background: var(--accent-color);
+            color: #000;
+            box-shadow: 0 0 30px var(--accent-color);
+        }
+
+        .difficulty-selector {
+            margin: 22px 0;
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-selector label {
+            cursor: pointer;
+            padding: 8px 14px;
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .difficulty-selector label:hover { background: rgba(0, 229, 255, 0.12); }
+        .difficulty-selector input[type="radio"] { display: none; }
+
+        .difficulty-selector input[type="radio"]:checked + span {
+            color: var(--accent-color);
+            font-weight: bold;
+            text-shadow: 0 0 10px var(--accent-color);
+        }
+
+        .difficulty-selector label:has(input[type="radio"]:checked) {
+            border-color: var(--accent-color);
+            background: rgba(0, 229, 255, 0.15);
+            box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+
+        .word-panel {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(0, 229, 255, 0.5);
+            border-radius: 12px;
+            padding: 10px 34px;
+            text-align: center;
+            z-index: 50;
+            min-width: 260px;
+        }
+
+        .word-panel .word-label {
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: var(--accent-color);
+            opacity: 0.8;
+        }
+
+        .word-display {
+            font-size: 42px;
+            font-weight: 900;
+            font-family: monospace;
+            letter-spacing: 6px;
+            margin-top: 2px;
+            line-height: 1.1;
+        }
+
+        .word-display .typed { color: var(--success-color); text-shadow: 0 0 10px var(--success-color); }
+        .word-display .remain { color: #fff; }
+        .word-display .caret {
+            display: inline-block;
+            width: 14px;
+            background: var(--accent-color);
+            animation: caretBlink 0.7s steps(1) infinite;
+            margin-left: 1px;
+        }
+
+        .word-display .hint { font-size: 18px; letter-spacing: 2px; color: #9ad; opacity: 0.85; }
+
+        @keyframes caretBlink { 50% { opacity: 0; } }
+
+        .lives {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 30;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 59, 92, 0.45);
+            border-radius: 8px;
+            padding: 7px 12px;
+        }
+
+        .life-heart { width: 26px; height: 26px; transition: all 0.3s; }
+        .life-heart.lost { opacity: 0.2; filter: grayscale(1); transform: scale(0.85); }
+
+        @keyframes heartShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        .lives.damaged { animation: heartShake 0.3s; }
+
+        .target-word {
+            fill: #fff;
+            font-weight: 800;
+            font-family: monospace;
+        }
+
+        .target-box { fill: rgba(0, 40, 60, 0.92); stroke: var(--accent-color); stroke-width: 2; }
+        .target-box.locked { stroke: var(--accent2); stroke-width: 3; filter: drop-shadow(0 0 6px var(--accent2)); }
+
+        .pos-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid var(--accent2);
+            color: var(--accent2);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 30;
+            letter-spacing: 1px;
+        }
+
+        .combo-text {
+            position: absolute;
+            left: 24px;
+            bottom: 24px;
+            font-size: 64px;
+            font-weight: 900;
+            font-style: italic;
+            color: var(--accent-color);
+            opacity: 0.4;
+            pointer-events: none;
+            user-select: none;
+            transform-origin: left bottom;
+            z-index: 30;
+        }
+
+        .speedo {
+            position: absolute;
+            right: 20px;
+            bottom: 24px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.35);
+            border-radius: 10px;
+            padding: 10px 18px;
+            text-align: center;
+            z-index: 30;
+        }
+
+        .speedo .spd-val {
+            font-size: 30px;
+            font-weight: 900;
+            font-family: monospace;
+            color: var(--accent-color);
+        }
+
+        .speedo .spd-label { font-size: 11px; letter-spacing: 2px; color: #9ad; }
+
+        .center-banner {
+            position: absolute;
+            top: 38%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 46px;
+            font-weight: 900;
+            letter-spacing: 6px;
+            color: #fff;
+            text-shadow: 0 0 24px var(--accent-color);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+            transition: opacity 0.25s;
+            white-space: nowrap;
+        }
+
+        .center-banner.show { opacity: 1; }
+
+        .judge-pop {
+            position: absolute;
+            top: 52%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-size: 34px;
+            font-weight: 900;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        .judge-pop.judge-anim { animation: judgePop 0.45s ease-out forwards; }
+
+        @keyframes judgePop {
+            0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+            25% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+            70% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+        }
+
+        .countdown-text {
+            position: absolute;
+            top: 42%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 130px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 40px var(--accent-color), 0 0 80px var(--boost);
+            z-index: 120;
+            display: none;
+            pointer-events: none;
+        }
+
+        .pause-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(5px);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 90;
+        }
+
+        .pause-overlay.active { display: flex; }
+
+        .pause-text {
+            font-size: 46px;
+            font-weight: bold;
+            text-shadow: 0 0 20px var(--accent-color);
+            margin-bottom: 16px;
+        }
+
+        .pause-subtext { font-size: 18px; color: #ccc; }
+
+        .chase-hud {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            border-radius: 20px;
+            padding: 5px 20px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 50;
+            display: none;
+            transition: all 0.3s;
+        }
+
+        .chase-hud span.target-name { color: #ff3b5c; }
+        .chase-hud span.target-diff { color: var(--accent-color); font-size: 16px; margin: 0 5px; }
+
+        .overtake-banner {
+            position: absolute;
+            top: 140px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.85), transparent);
+            color: #fff;
+            font-size: 22px;
+            font-weight: bold;
+            padding: 10px 80px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .overtake-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .player-info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            padding: 6px 18px;
+            border-radius: 8px;
+            z-index: 50;
+            text-align: center;
+        }
+
+        .player-name { font-size: 15px; color: var(--accent-color); font-weight: bold; }
+
+        .sidebar-right {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            width: 250px;
+            bottom: 70px;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            z-index: 40;
+            overflow: hidden;
+        }
+
+        .sidebar-title {
+            padding: 13px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 229, 255, 0.15);
+        }
+
+        .leaderboard-list {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            padding: 10px;
+            list-style: none;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .lb-item {
+            position: absolute;
+            width: calc(100% - 20px);
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            box-sizing: border-box;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s;
+        }
+
+        .lb-item .lb-rank { font-weight: bold; width: 30px; }
+        .lb-item .lb-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+        .lb-item .lb-score { color: var(--accent-color); font-family: monospace; font-weight: bold; }
+
+        .lb-item.rank-1 { background: linear-gradient(90deg, rgba(255,215,0,0.3), transparent); border-color: gold; color: gold; }
+        .lb-item.rank-2 { background: linear-gradient(90deg, rgba(192,192,192,0.3), transparent); border-color: silver; color: silver; }
+        .lb-item.rank-3 { background: linear-gradient(90deg, rgba(205,127,50,0.3), transparent); border-color: #cd7f32; color: #cd7f32; }
+        .lb-item.is-me { border-color: var(--accent-color); box-shadow: 0 0 8px rgba(0,229,255,0.4); }
+        .lb-item .lb-best-rank { font-size: 10px; opacity: 0.7; margin-left: 4px; }
+
+        @keyframes lbShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .lb-item.shake { animation: lbShake 0.4s; }
+
+        .final-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 18px 0;
+            font-size: 14px;
+        }
+
+        .final-stat {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .final-stat b { display: block; font-size: 22px; color: var(--accent-color); }
+
+        @media (max-width: 900px) {
+            .stage { right: 0; }
+            .sidebar-right { display: none !important; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-header">
+        <div class="header-left">
+            <a href="#" onclick="confirmExit(); return false;" style="color: var(--accent-color); text-decoration: none; font-weight: bold;">[ 退出 ]</a>
+            <button id="muteBtn" class="mute-btn" onclick="audio.toggleMute()">音效: 开启</button>
+        </div>
+        <div class="stat-group">
+            <div class="stat-item">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value" id="score">000000</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">ACCURACY</div>
+                <div class="stat-value" id="accuracy">100%</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">SPEED</div>
+                <div class="stat-value" id="wpm">0 WPM</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">COMBO</div>
+                <div class="stat-value" id="comboHud">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameArea">
+        <div class="stage">
+            <svg id="raceSvg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                    <linearGradient id="roadGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#12222e" />
+                        <stop offset="100%" stop-color="#0a1620" />
+                    </linearGradient>
+                    <linearGradient id="playerCarGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#00e5ff" />
+                        <stop offset="100%" stop-color="#7b2fff" />
+                    </linearGradient>
+                    <linearGradient id="boostGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#ff2d9b" stop-opacity="0.9" />
+                        <stop offset="100%" stop-color="#ff2d9b" stop-opacity="0" />
+                    </linearGradient>
+                    <filter id="carGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="b" />
+                        <feMerge>
+                            <feMergeNode in="b" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                    <pattern id="checkers" width="16" height="16" patternUnits="userSpaceOnUse">
+                        <rect width="16" height="16" fill="#fff" />
+                        <rect width="8" height="8" fill="#000" />
+                        <rect x="8" y="8" width="8" height="8" fill="#000" />
+                    </pattern>
+                </defs>
+
+                <rect x="0" y="0" width="800" height="600" fill="url(#roadGrad)" />
+
+                <g id="laneGroup">
+                    <rect x="40" y="30" width="720" height="540" rx="12" fill="#1a2c38" />
+                    <rect x="52" y="42" width="696" height="516" rx="8" fill="#16242f" />
+                    <line x1="52" y1="171" x2="748" y2="171" stroke="rgba(255,255,255,0.25)" stroke-width="3" stroke-dasharray="18 14" />
+                    <line x1="52" y1="300" x2="748" y2="300" stroke="rgba(255,255,255,0.25)" stroke-width="3" stroke-dasharray="18 14" />
+                    <line x1="52" y1="429" x2="748" y2="429" stroke="rgba(255,255,255,0.25)" stroke-width="3" stroke-dasharray="18 14" />
+                    <rect x="724" y="42" width="16" height="516" fill="url(#checkers)" />
+                    <rect x="52" y="545" width="696" height="10" fill="rgba(255,59,92,0.55)" />
+                </g>
+
+                <g id="playerLaneGlow">
+                    <rect x="52" y="443" width="696" height="115" fill="rgba(0,229,255,0.07)" stroke="rgba(0,229,255,0.35)" stroke-width="2" rx="6" />
+                </g>
+
+                <g id="fxLayer"></g>
+                <g id="wordsLayer"></g>
+                <g id="carsLayer"></g>
+            </svg>
+
+            <div class="word-panel">
+                <div class="word-label">FREE TYPE · 锁定任意单词</div>
+                <div class="word-display" id="wordDisplay"><span class="hint">等待目标…</span></div>
+            </div>
+
+            <div class="lives" id="livesBox">
+                <svg class="life-heart" viewBox="0 0 32 32" data-heart="1">
+                    <path d="M16 28 C4 18 2 10 8 6 C12 3 16 7 16 9 C16 7 20 3 24 6 C30 10 28 18 16 28 Z"
+                        fill="#ff3b5c" stroke="#ff8fab" stroke-width="1" />
+                </svg>
+                <svg class="life-heart" viewBox="0 0 32 32" data-heart="2">
+                    <path d="M16 28 C4 18 2 10 8 6 C12 3 16 7 16 9 C16 7 20 3 24 6 C30 10 28 18 16 28 Z"
+                        fill="#ff3b5c" stroke="#ff8fab" stroke-width="1" />
+                </svg>
+                <svg class="life-heart" viewBox="0 0 32 32" data-heart="3">
+                    <path d="M16 28 C4 18 2 10 8 6 C12 3 16 7 16 9 C16 7 20 3 24 6 C30 10 28 18 16 28 Z"
+                        fill="#ff3b5c" stroke="#ff8fab" stroke-width="1" />
+                </svg>
+            </div>
+
+            <div class="pos-badge" id="posBadge">WAVE 1</div>
+            <div class="combo-text" id="comboText">X 0</div>
+
+            <div class="speedo">
+                <div class="spd-val" id="speedVal">0</div>
+                <div class="spd-label">KM/H</div>
+            </div>
+
+            <div class="center-banner" id="centerBanner"></div>
+            <div class="judge-pop" id="judgeText">GOOD</div>
+            <div class="countdown-text" id="countdownText"></div>
+
+            <div class="pause-overlay" id="pauseOverlay">
+                <div class="pause-text">暂停中</div>
+                <div class="pause-subtext">按 ESC 继续比赛！</div>
+            </div>
+
+            <div class="chase-hud" id="chaseHud"></div>
+            <div class="overtake-banner" id="overtakeBanner"></div>
+
+            <div class="player-info" id="playerInfoUI" style="display:none;">
+                <div class="player-name" id="uiPlayerName">访客</div>
+                <div style="font-size:11px; color:#999;">赛车手</div>
+            </div>
+
+            <div id="startOverlay" class="ui-overlay">
+                <div class="menu-card">
+                    <h1 class="menu-title">单词飞车</h1>
+                    <p style="color: #9ef; font-size: 14px; letter-spacing: 3px; margin: 0;">WORD RACER</p>
+                    <div style="margin: 24px 0 8px; color: #bba; line-height: 1.8; font-size: 15px; text-align: left;">
+                        <p>🏎️ 连续自由打字：敲任意单词首字母即可锁定目标</p>
+                        <p>⚡ 连续正确击键加速，打完整个单词触发氮气</p>
+                        <p>🛑 单词冲到底线扣一条命，3 条命用完才结束</p>
+                        <p>📈 可以一直打一直打，只有死掉了才会结束</p>
+                        <p>🏁 AI 赛车只是风景，不必和他们比名次</p>
+                    </div>
+                    <div class="difficulty-selector">
+                        <label><input type="radio" name="difficulty" value="0.25"><span>练习赛 (积分 x0.25)</span></label>
+                        <label><input type="radio" name="difficulty" value="0.5"><span>业余赛 (积分 x0.5)</span></label>
+                        <label><input type="radio" name="difficulty" value="0.75" checked><span>职业赛 (积分 x0.75)</span></label>
+                        <label><input type="radio" name="difficulty" value="1.0"><span>大师赛 (积分 x1.0)</span></label>
+                    </div>
+                    <button class="btn-start" onclick="game.start()">发车</button>
+                </div>
+            </div>
+
+            <div id="gameOverOverlay" class="ui-overlay" style="display: none;">
+                <div class="menu-card" style="width: 480px;">
+                    <h1 class="menu-title" id="gameOverTitle" style="color: var(--danger-color); font-size: 40px;">车辆损毁</h1>
+                    <p style="color: #888; font-size: 20px; margin: 14px 0 0;">本局得分
+                        <span id="finalScore" style="color: var(--accent-color); font-size: 34px; font-weight: 900;">0</span>
+                    </p>
+                    <div class="final-stats">
+                        <div class="final-stat">存活时间<b id="finalPos">0s</b></div>
+                        <div class="final-stat">最高连击<b id="finalCombo">0</b></div>
+                        <div class="final-stat">速度<b id="finalWpm">0 WPM</b></div>
+                        <div class="final-stat">准确率<b id="finalAcc">100%</b></div>
+                    </div>
+                    <button class="btn-start" onclick="game.restart()">再来一局</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-right" id="leaderboardSidebar">
+            <div class="sidebar-title">实时英雄榜</div>
+            <ul class="leaderboard-list" id="lbList"></ul>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        // ==================== 音效引擎 (WebAudio) ====================
+        const audio = {
+            ctx: null,
+            muted: localStorage.getItem('game_muted') === 'true',
+            init() {
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) { console.warn('AudioContext not supported'); }
+                this.updateMuteBtn();
+            },
+            _check() {
+                if (this.muted) return null;
+                if (!this.ctx) this.init();
+                if (!this.ctx) return null;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                return this.ctx;
+            },
+            playKey(combo = 0) {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+                const base = scale[combo % scale.length];
+                osc.frequency.setValueAtTime(base, t);
+                gain.gain.setValueAtTime(0.2, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t); osc.stop(t + 0.1);
+            },
+            playWrong() {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(160, t);
+                gain.gain.setValueAtTime(0.14, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t); osc.stop(t + 0.12);
+            },
+            playBrake() {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(320, t);
+                osc.frequency.exponentialRampToValueAtTime(90, t + 0.25);
+                gain.gain.setValueAtTime(0.18, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t); osc.stop(t + 0.25);
+            },
+            playWord() {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                [659.25, 783.99, 987.77, 1318.5].forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, t + i * 0.06);
+                    gain.gain.setValueAtTime(0.16, t + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.22);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(t + i * 0.06); osc.stop(t + i * 0.06 + 0.22);
+                });
+            },
+            playBoost() {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, t);
+                osc.frequency.exponentialRampToValueAtTime(900, t + 0.45);
+                gain.gain.setValueAtTime(0.22, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t); osc.stop(t + 0.5);
+            },
+            playBeep(high = false) {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(high ? 1046.5 : 659.25, t);
+                gain.gain.setValueAtTime(0.25, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t); osc.stop(t + 0.15);
+            },
+            playOvertake() {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, t);
+                osc.frequency.setValueAtTime(1318.51, t + 0.1);
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(0.35, t + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(t); osc.stop(t + 0.45);
+            },
+            playFinish(win) {
+                const ctx = this._check(); if (!ctx) return;
+                const t = ctx.currentTime;
+                const notes = win ? [523.25, 659.25, 783.99, 1046.5] : [400, 340, 280, 200];
+                notes.forEach((f, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = win ? 'triangle' : 'sawtooth';
+                    osc.frequency.setValueAtTime(f, t + i * 0.12);
+                    gain.gain.setValueAtTime(0.2, t + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.35);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(t + i * 0.12); osc.stop(t + i * 0.12 + 0.35);
+                });
+            },
+            playGameOver() {
+                this.playFinish(false);
+            },
+            toggleMute() {
+                this.muted = !this.muted;
+                localStorage.setItem('game_muted', this.muted);
+                this.updateMuteBtn();
+            },
+            updateMuteBtn() {
+                const btn = document.getElementById('muteBtn');
+                if (!btn) return;
+                btn.innerHTML = `音效: ${this.muted ? '关闭' : '开启'}`;
+                btn.className = `mute-btn ${this.muted ? 'muted' : ''}`;
+            }
+        };
+
+        // ==================== 实时排行榜 (socket.io) ====================
+        const netEngine = {
+            socket: null,
+            myId: null,
+            myName: '访客',
+            lastRank: null,
+            rankTracker: {},
+            myBestRank: null,
+            reachedFirstPlace: false,
+            _lastLeaderboardData: null,
+            _inited: false,
+            init() {
+                if (this._inited) return;
+                try {
+                    this._inited = true;
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                    if (studentInfo.id && studentInfo.name) {
+                        this.myId = studentInfo.id;
+                        this.myName = studentInfo.name;
+                    } else {
+                        this.myId = 'guest_' + Math.floor(Math.random() * 10000);
+                    }
+                    document.getElementById('uiPlayerName').innerText = this.myName;
+                    document.getElementById('playerInfoUI').style.display = 'block';
+                    document.getElementById('leaderboardSidebar').style.display = 'flex';
+
+                    if (typeof io !== 'undefined') {
+                        this.socket = io(window.location.origin, {
+                            transports: ['websocket', 'polling'],
+                            reconnection: true,
+                            reconnectionAttempts: 5,
+                            reconnectionDelay: 1000
+                        });
+                        this.socket.on('connect', () => {
+                            this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+                        });
+                        this.socket.on('connect_error', (err) => {
+                            console.warn('[多人联机] 连接失败:', err.message);
+                        });
+                        this.socket.on('leaderboard_update', (list) => {
+                            if (list && list.length > 0) this.renderLeaderboard(list);
+                        });
+                    } else {
+                        console.warn('[多人联机] socket.io 未加载，多人功能不可用');
+                    }
+
+                    this.renderLeaderboard([{ username: this.myName, score: 0, wpm: 0, bestRank: null }]);
+                } catch (e) {
+                    console.warn('Socket.io initialization skipped or failed', e);
+                    if (!this.socket) this._inited = false;
+                }
+            },
+            updateScore(score, wpm) {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('update_score', { score, wpm });
+                } else {
+                    this.renderLeaderboard([{ username: this.myName, score, wpm }]);
+                }
+            },
+            resetScore() {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('reset_score');
+                }
+                this.lastRank = null;
+                this.rankTracker = {};
+                this.myBestRank = null;
+                this.reachedFirstPlace = false;
+                document.getElementById('chaseHud').style.display = 'none';
+            },
+            renderLeaderboard(list) {
+                const ul = document.getElementById('lbList');
+                const ITEM_HEIGHT = 45;
+
+                if (this._lastLeaderboardData) {
+                    const oldData = this._lastLeaderboardData;
+                    const hasChange = list.length !== oldData.length ||
+                        list.some((p, i) =>
+                            p.score !== oldData[i]?.score || p.username !== oldData[i]?.username
+                        );
+                    if (!hasChange) return;
+                }
+                this._lastLeaderboardData = list;
+
+                let myCurrentRank = -1;
+                let myScore = 0;
+
+                const existingItems = new Map();
+                Array.from(ul.children).forEach(li => existingItems.set(li.dataset.name, li));
+
+                list.forEach((p, idx) => {
+                    const currentRank = idx + 1;
+                    const isMe = p.username === this.myName;
+
+                    if (isMe) {
+                        myCurrentRank = currentRank;
+                        myScore = p.score;
+                        const playerCount = list.length;
+                        if (playerCount >= 5) {
+                            if (!this.rankTracker[currentRank]) this.rankTracker[currentRank] = Date.now();
+                            const duration = (Date.now() - this.rankTracker[currentRank]) / 1000;
+                            if (duration >= 20) {
+                                if (!this.myBestRank || currentRank < this.myBestRank) {
+                                    this.myBestRank = currentRank;
+                                }
+                            }
+                        } else {
+                            this.rankTracker = {};
+                        }
+                        if (currentRank === 1) this.reachedFirstPlace = true;
+                    }
+
+                    let li = existingItems.get(p.username);
+                    if (!li) {
+                        li = document.createElement('li');
+                        li.className = 'lb-item';
+                        li.dataset.name = p.username;
+                        li.innerHTML = `
+                            <span class="lb-rank"></span>
+                            <span class="lb-name"></span>
+                            <span class="lb-score"></span>
+                        `;
+                        ul.appendChild(li);
+                    } else {
+                        existingItems.delete(p.username);
+                    }
+
+                    li.querySelector('.lb-rank').innerText = currentRank;
+                    li.querySelector('.lb-score').innerText = p.score;
+                    let nameHtml = p.username;
+                    if (p.bestRank) nameHtml += `<span class="lb-best-rank">(Best: #${p.bestRank})</span>`;
+                    li.querySelector('.lb-name').innerHTML = nameHtml;
+                    li.style.transform = `translateY(${idx * ITEM_HEIGHT}px)`;
+
+                    li.classList.remove('rank-1', 'rank-2', 'rank-3', 'is-me', 'shake');
+                    if (currentRank === 1) li.classList.add('rank-1');
+                    if (currentRank === 2) li.classList.add('rank-2');
+                    if (currentRank === 3) li.classList.add('rank-3');
+                    if (isMe) li.classList.add('is-me');
+                });
+
+                existingItems.forEach(li => li.remove());
+
+                const chaseHud = document.getElementById('chaseHud');
+                let gameRunning = false;
+                try { gameRunning = typeof game !== 'undefined' && game.isRunning && !game.isPaused; } catch (e) { gameRunning = false; }
+                if (myCurrentRank > 1 && gameRunning) {
+                    const target = list[myCurrentRank - 2];
+                    const diff = target.score - myScore;
+                    chaseHud.innerHTML = `距离第 <span>${myCurrentRank - 1}</span> 名 <span class="target-name">${target.username}</span> 还差 <span class="target-diff">${diff}</span> 分`;
+                    chaseHud.style.display = 'block';
+                } else if (myCurrentRank === 1 && gameRunning) {
+                    chaseHud.innerHTML = `你是第一名！继续保持！`;
+                    chaseHud.style.display = 'block';
+                } else {
+                    chaseHud.style.display = 'none';
+                }
+
+                if (this.lastRank !== null && myCurrentRank !== -1) {
+                    if (myCurrentRank < this.lastRank) {
+                        const surpassed = list[myCurrentRank] ? list[myCurrentRank].username : '前一名玩家';
+                        this.showOvertake(surpassed);
+                        audio.playOvertake();
+                    } else if (myCurrentRank > this.lastRank) {
+                        const myLi = Array.from(ul.children).find(el => el.dataset.name === this.myName);
+                        if (myLi) {
+                            myLi.classList.add('shake');
+                            setTimeout(() => myLi.classList.remove('shake'), 400);
+                        }
+                    }
+                }
+                if (myCurrentRank !== -1) this.lastRank = myCurrentRank;
+            },
+            showOvertake(name) {
+                const banner = document.getElementById('overtakeBanner');
+                banner.innerText = `太棒了！你刚刚超过了 ${name}！`;
+                banner.classList.add('show');
+                setTimeout(() => banner.classList.remove('show'), 2000);
+            }
+        };
+
+        // ==================== 游戏常量 ====================
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+        const RACE_DIST = 2200;
+        const START_X = 70;
+        const FINISH_X = 730;
+        const TRACK_LEN = FINISH_X - START_X;
+        const LANES_Y = [106, 235, 364, 493];
+        const PLAYER_LANE = 3;
+        const AI_NAMES = ['影子', '猎风', '雷霆'];
+        const AI_COLORS = ['#ff9f00', '#00ff88', '#b967ff'];
+        const AI_BASE_SPEED = [165, 180, 195];
+        const MAX_PLAYER_SPEED = 260;
+        const MIN_PLAYER_SPEED = 0;
+        const ACCEL_PER_KEY = 10;
+        const SPEED_DECAY = 55;
+        const BRAKE_FACTOR = 0.55;
+        const BOOST_SPEED = 300;
+        const BOOST_TIME = 1.1;
+        const MAX_LIVES = 3;
+        const TARGET_TOP_Y = 70;
+        const DANGER_Y = 535;
+        const WORDS_3 = ['cat', 'dog', 'sun', 'map', 'pen', 'red', 'big', 'run', 'cup', 'egg', 'sky', 'car', 'bed', 'fox', 'hat'];
+        const WORDS_4_5 = ['apple', 'book', 'bird', 'fish', 'milk', 'rain', 'tree', 'star', 'moon', 'duck', 'cake', 'tiger', 'green', 'river', 'snowy', 'music', 'house', 'water', 'cloud', 'bread', 'happy'];
+        const WORDS_6_PLUS = ['banana', 'monkey', 'orange', 'family', 'doctor', 'garden', 'yellow', 'window', 'school', 'friend', 'winter', 'spring'];
+
+        // ==================== 游戏主体 ====================
+        const game = {
+            score: 0, combo: 0, maxCombo: 0,
+            totalChars: 0, correctChars: 0, errorChars: 0,
+            difficultyFactor: 1.0,
+            isRunning: false, isPaused: false, inCountdown: false,
+            startTime: null, lastScoreUpdate: 0,
+            player: { progress: 0, speed: 0, boostT: 0, x: START_X },
+            ais: [],
+            lives: MAX_LIVES,
+            targets: [],
+            lockedTarget: null,
+            destroyed: 0,
+            wave: 1,
+            wordsCompleted: [],
+            finishPos: 0,
+            _raf: null, _lastFrame: 0, _bannerT: null,
+            _spawnT: null, _targetId: 0,
+            _keydownHandler: null,
+            cars: { player: null, ai: [] },
+
+            start() {
+                const diffRadio = document.querySelector('input[name="difficulty"]:checked');
+                this.difficultyFactor = diffRadio ? parseFloat(diffRadio.value) : 1.0;
+
+                audio.init();
+                document.getElementById('startOverlay').style.display = 'none';
+                document.getElementById('gameOverOverlay').style.display = 'none';
+                netEngine.init();
+                this.resetState();
+                this.runCountdown();
+            },
+
+            resetState() {
+                this.score = 0; this.combo = 0; this.maxCombo = 0;
+                this.totalChars = 0; this.correctChars = 0; this.errorChars = 0;
+                this.startTime = null; this.lastScoreUpdate = 0;
+                this.finishPos = 0;
+                this.wordsCompleted = [];
+                this.lives = MAX_LIVES;
+                this.destroyed = 0;
+                this.wave = 1;
+                this.lockedTarget = null;
+                this.clearTargets();
+                this.player = { progress: 0, speed: 0, boostT: 0, x: START_X };
+                this.ais = AI_BASE_SPEED.map((base, i) => ({
+                    name: AI_NAMES[i],
+                    color: AI_COLORS[i],
+                    progress: i * 80,
+                    speed: 0,
+                    target: base * (0.55 + this.difficultyFactor * 0.95),
+                    lane: i,
+                    finished: false,
+                    finishTime: null,
+                    wobbleSeed: Math.random() * 10
+                }));
+                this.renderWord();
+                this.updateLives();
+                this.updateHud();
+                this.renderCars();
+                document.getElementById('posBadge').innerText = 'WAVE 1';
+                document.getElementById('comboText').innerText = 'X 0';
+            },
+
+            runCountdown() {
+                this.inCountdown = true;
+                const el = document.getElementById('countdownText');
+                el.style.display = 'block';
+                const steps = ['3', '2', '1', 'GO!'];
+                let i = 0;
+                const tick = () => {
+                    if (i >= steps.length) {
+                        el.style.display = 'none';
+                        this.inCountdown = false;
+                        this.beginPlay();
+                        return;
+                    }
+                    el.textContent = steps[i];
+                    audio.playBeep(i === steps.length - 1);
+                    i++;
+                    setTimeout(tick, 700);
+                };
+                tick();
+            },
+
+            beginPlay() {
+                this.isRunning = true;
+                this.isPaused = false;
+                this.startTime = Date.now();
+                if (this._keydownHandler) window.removeEventListener('keydown', this._keydownHandler);
+                window.addEventListener('keydown', this._keydownHandler = (e) => this.handleInput(e));
+                this._lastFrame = performance.now();
+                this.spawnTarget(true);
+                this.spawnTarget(true);
+                this.scheduleSpawn();
+                this.loop(this._lastFrame);
+            },
+
+            restart() {
+                document.getElementById('gameOverOverlay').style.display = 'none';
+                clearTimeout(this._spawnT);
+                this._spawnT = null;
+                if (this._keydownHandler) {
+                    window.removeEventListener('keydown', this._keydownHandler);
+                    this._keydownHandler = null;
+                }
+                if (this._raf) cancelAnimationFrame(this._raf);
+                this._raf = null;
+                this.resetState();
+                netEngine.resetScore();
+                this.runCountdown();
+            },
+
+            stopTimers() {
+                this.isRunning = false;
+                this.isPaused = false;
+                clearTimeout(this._spawnT);
+                this._spawnT = null;
+                document.getElementById('pauseOverlay').classList.remove('active');
+            },
+
+            pickWord() {
+                const elapsed = this.startTime ? (Date.now() - this.startTime) / 1000 : 0;
+                const heat = Math.min(1, elapsed / 140 + this.score / 6000);
+                let pool;
+                if (heat < 0.35) pool = Math.random() < 0.75 ? WORDS_3 : WORDS_4_5;
+                else if (heat < 0.7) pool = Math.random() < 0.5 ? WORDS_3 : (Math.random() < 0.8 ? WORDS_4_5 : WORDS_6_PLUS);
+                else pool = Math.random() < 0.55 ? WORDS_4_5 : WORDS_6_PLUS;
+                if (this.difficultyFactor <= 0.75 && Math.random() < 0.45) pool = WORDS_3;
+                return pool[Math.floor(Math.random() * pool.length)];
+            },
+
+            renderWord() {
+                const el = document.getElementById('wordDisplay');
+                if (this.lockedTarget && this.targets.includes(this.lockedTarget)) {
+                    const word = this.lockedTarget.word;
+                    const typed = this.lockedTarget.typed;
+                    const remain = word.substring(typed.length);
+                    el.innerHTML = `<span class="typed">${typed}</span><span class="remain">${remain}</span><span class="caret">&nbsp;</span>`;
+                } else if (this.targets.length) {
+                    el.innerHTML = `<span class="hint">首字母锁定：${this.targets.map(t => t.word[0]).join(' ')}</span>`;
+                } else {
+                    el.innerHTML = `<span class="hint">等待目标…</span>`;
+                }
+            },
+
+            maxTargets() {
+                if (this.difficultyFactor <= 0.5) return 3;
+                if (this.difficultyFactor <= 0.75) return 4;
+                return 5;
+            },
+
+            getFallSpeed(len) {
+                const elapsed = this.startTime ? (Date.now() - this.startTime) / 1000 : 0;
+                const base = (26 + Math.min(24, elapsed * 0.28) + Math.min(18, this.score / 450)) * (0.65 + this.difficultyFactor * 0.45);
+                return base / Math.max(1, len / 3.5);
+            },
+
+            scheduleSpawn() {
+                clearTimeout(this._spawnT);
+                const tick = () => {
+                    if (!this.isRunning) return;
+                    if (this.isPaused) {
+                        this._spawnT = setTimeout(tick, 350);
+                        return;
+                    }
+                    this.spawnTarget();
+                    const interval = Math.max(1100, (3400 - Math.floor(this.score / 150) * 70) / (0.7 + this.difficultyFactor * 0.4));
+                    this._spawnT = setTimeout(tick, interval);
+                };
+                this._spawnT = setTimeout(tick, 500);
+            },
+
+            spawnTarget(isInitial = false) {
+                if (!this.isRunning && !isInitial) return;
+                if (this.targets.length >= this.maxTargets()) return;
+
+                const word = this.pickWord();
+                const boxW = Math.max(72, word.length * 18 + 28);
+                const x = 70 + Math.random() * (660 - boxW);
+                const y = isInitial ? (TARGET_TOP_Y + Math.random() * 80) : (TARGET_TOP_Y - 50);
+                const speed = this.getFallSpeed(word.length);
+
+                const g = document.createElementNS(SVG_NS, 'g');
+                g.setAttribute('transform', `translate(${x + boxW / 2},${y})`);
+                const rect = document.createElementNS(SVG_NS, 'rect');
+                rect.setAttribute('class', 'target-box');
+                rect.setAttribute('x', String(-boxW / 2));
+                rect.setAttribute('y', '-22');
+                rect.setAttribute('width', String(boxW));
+                rect.setAttribute('height', '44');
+                rect.setAttribute('rx', '10');
+                g.appendChild(rect);
+
+                const text = document.createElementNS(SVG_NS, 'text');
+                text.setAttribute('class', 'target-word');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'central');
+                text.setAttribute('font-size', '22');
+                text.setAttribute('y', '1');
+                text.textContent = word;
+                g.appendChild(text);
+
+                document.getElementById('wordsLayer').appendChild(g);
+                const target = {
+                    id: this._targetId++,
+                    word, typed: '',
+                    x: x + boxW / 2, y, speed, w: boxW,
+                    g, rect, text
+                };
+                this.targets.push(target);
+                this.renderWord();
+                return target;
+            },
+
+            clearTargets() {
+                this.targets.forEach(t => t.g.remove());
+                this.targets = [];
+                this.lockedTarget = null;
+            },
+
+            removeTarget(t) {
+                t.g.remove();
+                this.targets = this.targets.filter(x => x !== t);
+                if (this.lockedTarget === t) this.lockedTarget = null;
+            },
+
+            updateLives(damaged) {
+                document.querySelectorAll('.life-heart').forEach((h, i) => {
+                    h.classList.toggle('lost', i >= this.lives);
+                });
+                if (damaged) {
+                    const box = document.getElementById('livesBox');
+                    box.classList.remove('damaged');
+                    void box.offsetWidth;
+                    box.classList.add('damaged');
+                }
+            },
+
+            createCar(color, isPlayer) {
+                const g = document.createElementNS(SVG_NS, 'g');
+                const body = document.createElementNS(SVG_NS, 'path');
+                body.setAttribute('d', isPlayer
+                    ? 'M -34 -14 Q -38 0 -34 14 L -26 16 L -26 -16 L -34 -14 Z M -30 -12 L 18 -18 Q 34 -14 40 0 Q 34 14 18 18 L -30 12 Z'
+                    : 'M -32 -12 Q -36 0 -32 12 L -24 14 L -24 -14 L -32 -12 Z M -28 -10 L 16 -16 Q 32 -12 38 0 Q 32 12 16 16 L -28 10 Z');
+                body.setAttribute('fill', color);
+                body.setAttribute('stroke', isPlayer ? '#ffffff' : 'rgba(255,255,255,0.5)');
+                body.setAttribute('stroke-width', isPlayer ? 2 : 1);
+                if (isPlayer) body.setAttribute('filter', 'url(#carGlow)');
+                g.appendChild(body);
+
+                const windowRect = document.createElementNS(SVG_NS, 'rect');
+                windowRect.setAttribute('x', -6);
+                windowRect.setAttribute('y', -9);
+                windowRect.setAttribute('width', 18);
+                windowRect.setAttribute('height', 18);
+                windowRect.setAttribute('rx', 4);
+                windowRect.setAttribute('fill', 'rgba(0,0,0,0.45)');
+                g.appendChild(windowRect);
+
+                const flame = document.createElementNS(SVG_NS, 'path');
+                flame.setAttribute('d', 'M -34 -7 L -58 0 L -34 7 Z');
+                flame.setAttribute('fill', 'url(#boostGrad)');
+                flame.setAttribute('opacity', '0');
+                flame.setAttribute('class', 'flame');
+                g.appendChild(flame);
+
+                if (isPlayer) {
+                    const nameText = document.createElementNS(SVG_NS, 'text');
+                    nameText.setAttribute('x', 0);
+                    nameText.setAttribute('y', -26);
+                    nameText.setAttribute('text-anchor', 'middle');
+                    nameText.setAttribute('font-size', '13');
+                    nameText.setAttribute('font-weight', 'bold');
+                    nameText.setAttribute('fill', '#00e5ff');
+                    nameText.setAttribute('class', 'car-name');
+                    nameText.textContent = 'YOU';
+                    g.appendChild(nameText);
+                }
+
+                return g;
+            },
+
+            renderCars() {
+                const layer = document.getElementById('carsLayer');
+                layer.innerHTML = '';
+                this.cars.ai = [];
+                this.ais.forEach((ai, i) => {
+                    const car = this.createCar(ai.color, false);
+                    const nameText = document.createElementNS(SVG_NS, 'text');
+                    nameText.setAttribute('x', 0);
+                    nameText.setAttribute('y', -26);
+                    nameText.setAttribute('text-anchor', 'middle');
+                    nameText.setAttribute('font-size', '13');
+                    nameText.setAttribute('font-weight', 'bold');
+                    nameText.setAttribute('fill', ai.color);
+                    nameText.textContent = ai.name;
+                    car.appendChild(nameText);
+                    layer.appendChild(car);
+                    this.cars.ai.push(car);
+                    this.positionCar(car, START_X + (ai.progress / RACE_DIST) * TRACK_LEN, LANES_Y[ai.lane]);
+                });
+                const playerCar = this.createCar('url(#playerCarGrad)', true);
+                layer.appendChild(playerCar);
+                this.cars.player = playerCar;
+                this.positionCar(playerCar, this.player.x, LANES_Y[PLAYER_LANE]);
+            },
+
+            positionCar(car, x, y) {
+                car.setAttribute('transform', `translate(${x},${y})`);
+            },
+
+            loop(now) {
+                if (!this.isRunning) return;
+                const dt = Math.min(0.05, (now - this._lastFrame) / 1000);
+                this._lastFrame = now;
+
+                if (!this.isPaused) {
+                    this.step(dt);
+                }
+
+                if (Date.now() - this.lastScoreUpdate > 1000) {
+                    netEngine.updateScore(this.score, this.currentWpm());
+                    this.lastScoreUpdate = Date.now();
+                }
+
+                this._raf = requestAnimationFrame((t) => this.loop(t));
+            },
+
+            step(dt) {
+                if (this.player.boostT > 0) {
+                    this.player.boostT -= dt;
+                    this.player.speed = Math.max(this.player.speed, BOOST_SPEED * 0.95);
+                } else {
+                    this.player.speed = Math.max(MIN_PLAYER_SPEED, this.player.speed - SPEED_DECAY * dt);
+                }
+                this.player.progress += this.player.speed * dt;
+
+                this.ais.forEach((ai) => {
+                    const wobble = Math.sin(nowSec() * 1.7 + ai.wobbleSeed) * 0.12;
+                    ai.speed = ai.target * (1 + wobble);
+                    ai.progress += ai.speed * dt;
+                    if (ai.progress >= RACE_DIST) {
+                        ai.progress -= RACE_DIST;
+                    }
+                });
+
+                const misses = [];
+                this.targets.forEach((t) => {
+                    t.y += t.speed * dt;
+                    t.g.setAttribute('transform', `translate(${t.x},${t.y})`);
+                    if (t.y >= DANGER_Y) misses.push(t);
+                });
+                misses.forEach(t => this.missTarget(t));
+                if (!this.isRunning) return;
+
+                const pX = START_X + ((this.player.progress % RACE_DIST) / RACE_DIST) * TRACK_LEN;
+                this.player.x = pX;
+                if (this.cars.player) {
+                    this.positionCar(this.cars.player, pX, LANES_Y[PLAYER_LANE]);
+                    const flame = this.cars.player.querySelector('.flame');
+                    if (flame) {
+                        if (this.player.boostT > 0) {
+                            flame.setAttribute('opacity', String(0.6 + Math.sin(nowSec() * 30) * 0.4));
+                        } else {
+                            flame.setAttribute('opacity', this.player.speed > MAX_PLAYER_SPEED * 0.5 ? '0.6' : '0');
+                        }
+                    }
+                }
+
+                this.ais.forEach((ai, i) => {
+                    if (!this.cars.ai[i]) return;
+                    const x = START_X + (ai.progress / RACE_DIST) * TRACK_LEN;
+                    this.positionCar(this.cars.ai[i], x, LANES_Y[ai.lane]);
+                });
+
+                this.updateWave();
+                this.updateHud();
+
+                if (this.targets.length === 0) {
+                    this.spawnTarget();
+                }
+            },
+
+            updateWave() {
+                const nextWave = 1 + Math.floor(this.destroyed / 5);
+                if (nextWave > this.wave) {
+                    this.wave = nextWave;
+                    this.showBanner(`WAVE ${this.wave}`);
+                    audio.playOvertake();
+                }
+                document.getElementById('posBadge').innerText = 'WAVE ' + this.wave;
+            },
+
+            missTarget(t) {
+                if (!this.isRunning) return;
+                this.combo = 0;
+                this.removeTarget(t);
+                this.lives--;
+                this.updateLives(true);
+                audio.playWrong();
+                audio.playBrake();
+                this.showJudge('HIT!', '#ff3b5c');
+                this.showBanner('单词冲线！ -1 生命');
+                this.renderWord();
+                if (this.lives <= 0) {
+                    this.endRace(false);
+                }
+            },
+
+            handleInput(e) {
+                if (!this.isRunning || this.inCountdown) return;
+                if (e.key === 'Escape') {
+                    this.togglePause();
+                    return;
+                }
+                if (this.isPaused) return;
+                if (!/^[a-zA-Z]$/.test(e.key) || e.ctrlKey || e.altKey || e.metaKey) return;
+                if (e.repeat) return;
+
+                const char = e.key.toLowerCase();
+                this.totalChars++;
+
+                if (this.lockedTarget && this.targets.includes(this.lockedTarget)) {
+                    const next = this.lockedTarget.word[this.lockedTarget.typed.length];
+                    if (next === char) {
+                        this.correctKey(this.lockedTarget);
+                    } else {
+                        this.wrongKey();
+                    }
+                    return;
+                }
+
+                const match = this.targets.find(t => t.word[0] === char);
+                if (match) {
+                    this.lockedTarget = match;
+                    match.rect.classList.add('locked');
+                    this.correctKey(match);
+                } else {
+                    this.wrongKey();
+                }
+            },
+
+            correctKey(t) {
+                t.typed += t.word[t.typed.length];
+                this.correctChars++;
+                this.combo++;
+                if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+
+                const comboMult = 1 + Math.min(this.combo, 50) * 0.02;
+                this.score += Math.floor(12 * comboMult * this.difficultyFactor);
+
+                const boostMul = this.player.boostT > 0 ? 1.35 : 1;
+                this.player.speed = Math.min(MAX_PLAYER_SPEED * 1.4, this.player.speed + ACCEL_PER_KEY * boostMul);
+
+                audio.playKey(this.combo);
+
+                const remain = t.word.substring(t.typed.length);
+                t.text.innerHTML = `<tspan fill="#00ff88">${t.word.substring(0, t.typed.length)}</tspan><tspan fill="#fff">${remain}</tspan>`;
+
+                if (t.typed.length >= t.word.length) {
+                    this.completeWord(t);
+                } else {
+                    this.renderWord();
+                }
+            },
+
+            completeWord(t) {
+                const word = t.word;
+                this.wordsCompleted.push(word);
+                this.destroyed++;
+                const bonus = Math.floor(word.length * 35 * this.difficultyFactor);
+                this.score += bonus;
+
+                this.player.boostT = BOOST_TIME;
+                this.player.speed = BOOST_SPEED;
+
+                audio.playWord();
+                audio.playBoost();
+                this.showBanner(`氮气加速！+${bonus}`);
+                this.showJudge('BOOST!', '#ff2d9b');
+
+                this.removeTarget(t);
+                this.spawnFx();
+                this.renderWord();
+                if (this.targets.length < 2) {
+                    this.spawnTarget(true);
+                }
+            },
+
+            wrongKey() {
+                this.errorChars++;
+                this.combo = 0;
+                this.player.speed = Math.max(MIN_PLAYER_SPEED, this.player.speed * BRAKE_FACTOR);
+                audio.playWrong();
+                audio.playBrake();
+                this.showJudge('BRAKE', '#ff3b5c');
+            },
+
+            spawnFx() {
+                const layer = document.getElementById('fxLayer');
+                const ring = document.createElementNS(SVG_NS, 'circle');
+                ring.setAttribute('cx', this.player.x);
+                ring.setAttribute('cy', LANES_Y[PLAYER_LANE]);
+                ring.setAttribute('r', 10);
+                ring.setAttribute('fill', 'none');
+                ring.setAttribute('stroke', '#ff2d9b');
+                ring.setAttribute('stroke-width', 4);
+                layer.appendChild(ring);
+                const t0 = performance.now();
+                const anim = (t) => {
+                    const k = Math.min(1, (t - t0) / 500);
+                    ring.setAttribute('r', String(10 + k * 70));
+                    ring.setAttribute('opacity', String(1 - k));
+                    if (k < 1) requestAnimationFrame(anim);
+                    else ring.remove();
+                };
+                requestAnimationFrame(anim);
+            },
+
+            showJudge(text, color) {
+                const el = document.getElementById('judgeText');
+                el.textContent = text;
+                el.style.color = color;
+                el.style.textShadow = `0 0 18px ${color}`;
+                el.classList.remove('judge-anim');
+                void el.getBoundingClientRect();
+                el.classList.add('judge-anim');
+            },
+
+            showBanner(text) {
+                const el = document.getElementById('centerBanner');
+                el.textContent = text;
+                el.classList.add('show');
+                clearTimeout(this._bannerT);
+                this._bannerT = setTimeout(() => el.classList.remove('show'), 1100);
+            },
+
+            currentWpm() {
+                if (!this.startTime) return 0;
+                const minutes = (Date.now() - this.startTime) / 60000;
+                if (minutes <= 0) return 0;
+                return Math.round((this.correctChars / 5) / minutes) || 0;
+            },
+
+            updateHud() {
+                document.getElementById('score').innerText = String(this.score).padStart(6, '0');
+                const acc = this.totalChars ? Math.round((this.correctChars / this.totalChars) * 100) : 100;
+                document.getElementById('accuracy').innerText = acc + '%';
+                document.getElementById('wpm').innerText = this.currentWpm() + ' WPM';
+                document.getElementById('comboHud').innerText = this.combo;
+                document.getElementById('speedVal').innerText = Math.round(this.player.speed);
+
+                const comboEl = document.getElementById('comboText');
+                comboEl.innerText = 'X ' + this.combo;
+                comboEl.style.opacity = this.combo > 0 ? Math.min(0.8, this.combo / 30) : 0.45;
+            },
+
+            togglePause() {
+                if (!this.isRunning) return;
+                this.isPaused = !this.isPaused;
+                document.getElementById('pauseOverlay').classList.toggle('active', this.isPaused);
+                if (!this.isPaused) this._lastFrame = performance.now();
+            },
+
+            async endRace(finished) {
+                if (!this.isRunning) return;
+                this.stopTimers();
+                if (this._raf) cancelAnimationFrame(this._raf);
+                this._raf = null;
+                if (this._keydownHandler) {
+                    window.removeEventListener('keydown', this._keydownHandler);
+                    this._keydownHandler = null;
+                }
+
+                audio.playGameOver();
+                netEngine.resetScore();
+
+                const duration = Math.max(0, Math.round((Date.now() - (this.startTime || Date.now())) / 1000));
+                const acc = this.totalChars ? Math.round((this.correctChars / this.totalChars) * 100) : 100;
+                document.getElementById('gameOverTitle').innerText = '车辆损毁';
+                document.getElementById('gameOverTitle').style.color = 'var(--danger-color)';
+                document.getElementById('finalScore').innerText = this.score;
+                document.getElementById('finalPos').innerText = duration + 's';
+                document.getElementById('finalCombo').innerText = this.maxCombo;
+                document.getElementById('finalWpm').innerText = this.currentWpm() + ' WPM';
+                document.getElementById('finalAcc').innerText = acc + '%';
+                document.getElementById('gameOverOverlay').style.display = 'flex';
+
+                await this.saveRecord();
+            },
+
+            async saveRecord() {
+                const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
+                if (!studentInfo.id || typeof submitPractice === 'undefined') return;
+                try {
+                    const duration = Math.max(1, Math.round((Date.now() - (this.startTime || Date.now())) / 1000));
+                    const acc = this.totalChars ? Math.round((this.correctChars / this.totalChars) * 100) : 0;
+                    const wpm = this.currentWpm();
+                    await submitPractice({
+                        student_id: studentInfo.id,
+                        mode: 'word-racer',
+                        score: this.score,
+                        duration,
+                        wpm,
+                        accuracy: acc,
+                        total_chars: this.totalChars,
+                        correct_chars: this.correctChars,
+                        error_chars: this.errorChars,
+                        combo: this.combo,
+                        max_combo: this.maxCombo,
+                        difficulty: this.difficultyFactor,
+                        extra_data: {
+                            position: this.finishPos,
+                            wave: this.wave,
+                            destroyed: this.destroyed,
+                            lives: this.lives,
+                            difficulty: this.difficultyFactor,
+                            words: this.wordsCompleted.length,
+                            wordList: this.wordsCompleted,
+                            bestRank: netEngine.myBestRank
+                        }
+                    });
+                } catch (e) {
+                    console.error('保存失败:', e);
+                }
+            }
+        };
+        // 页面加载即连接排行榜
+        netEngine.init();
+
+        function nowSec() { return performance.now() / 1000; }
+
+        async function confirmExit() {
+            if (game.isRunning && game.score > 0) {
+                game.stopTimers();
+                if (game._raf) cancelAnimationFrame(game._raf);
+                game._raf = null;
+                if (game._keydownHandler) {
+                    window.removeEventListener('keydown', game._keydownHandler);
+                    game._keydownHandler = null;
+                }
+                await game.saveRecord();
+            }
+            location.href = 'practice.html';
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && game.isRunning && !game.isPaused) {
+                game.togglePause();
+            }
+        });
+    </script>
+</body>
+
+</html>

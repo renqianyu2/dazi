@@ -276,6 +276,28 @@
                 <span class="difficulty-badge medium">中等</span>
             </div>
 
+            <div class="mode-card" onclick="location.href='rhythm-typist.html'">
+                <div class="mode-icon">🎵</div>
+                <div class="mode-title">节奏打字</div>
+                <div class="mode-desc">
+                    音符落向节拍线<br>
+                    敲出字母完成连击<br>
+                    3条命挑战极限节奏！
+                </div>
+                <span class="difficulty-badge hard">挑战</span>
+            </div>
+
+            <div class="mode-card" onclick="location.href='word-racer.html'">
+                <div class="mode-icon">🏎️</div>
+                <div class="mode-title">单词飞车</div>
+                <div class="mode-desc">
+                    连续正确击键加速<br>
+                    打完整单词氮气冲刺<br>
+                    对抗AI冲过终点线！
+                </div>
+                <span class="difficulty-badge medium">中等</span>
+            </div>
+
         </div>
 
         <!-- 综合排行榜入口 -->
@@ -302,7 +324,7 @@
                         </span>
                     </p>
                     <p style="margin: 2px 0 0 0; opacity: 0.6; font-size: 11px;">
-                        🌟 满分标准：每分钟80字 + 全部正确 + 四个游戏都玩过
+                        🌟 满分标准：每分钟80字 + 全部正确 + 六个游戏都玩过
                     </p>
                 </div>
                 <button class="btn-close" onclick="closeRanking()">×</button>
@@ -314,6 +336,8 @@
                     <div class="stat-tab" data-field="fruit_score">拼音入门</div>
                     <div class="stat-tab" data-field="adventure_score">英语闯关</div>
                     <div class="stat-tab" data-field="classics_score">国学打字</div>
+                    <div class="stat-tab" data-field="rhythm_score">节奏打字</div>
+                    <div class="stat-tab" data-field="racer_score">单词飞车</div>
                 </div>
                 <div id="rankingContent">
                     <table class="ranking-table">
@@ -401,6 +425,8 @@
                                         <div class="stat-item ${currentRankingField === 'fruit_score' ? 'active' : ''}">🍎${item.fruit_best_wpm || 0}W / 🔥${item.fruit_best_combo || 0}</div>
                                         <div class="stat-item ${currentRankingField === 'adventure_score' ? 'active' : ''}">🗺️${item.adventure_best_wpm || 0}W / 🚩L${item.adventure_levels_completed || 0}</div>
                                         <div class="stat-item ${currentRankingField === 'classics_score' ? 'active' : ''}">📜${item.classics_best_wpm || 0}W / ${item.classics_best_accuracy || 0}%</div>
+                                        <div class="stat-item ${currentRankingField === 'rhythm_score' ? 'active' : ''}">🎵${item.rhythm_best_wpm || 0}W / 🔗${item.rhythm_best_combo || 0}</div>
+                                        <div class="stat-item ${currentRankingField === 'racer_score' ? 'active' : ''}">🏎️${item.racer_best_wpm || 0}W / 🔗${item.racer_best_combo || 0}</div>
                                     </div>
                                 </td>
                             </tr>

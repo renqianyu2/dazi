@@ -4,10 +4,12 @@ const { db } = require('../database');
 
 // 积分权重配置
 const SCORE_WEIGHTS = {
-    interstellar: 0.30,
-    fruit: 0.25,
-    adventure: 0.25,
-    classics: 0.20
+    interstellar: 0.25,
+    fruit: 0.20,
+    adventure: 0.20,
+    classics: 0.15,
+    rhythm: 0.10,
+    racer: 0.10
 };
 
 // 计算单个项目的综合能力分 (Composite Proficiency Index)
@@ -35,12 +37,14 @@ function calculateItemScore(wpm, accuracy, score, masteryValue, masteryTarget) {
 }
 
 // 计算综合积分
-function calculateTotalScore(interstellar, fruit, adventure, classics) {
+function calculateTotalScore(scores) {
     return Math.round(
-        interstellar * SCORE_WEIGHTS.interstellar +
-        fruit * SCORE_WEIGHTS.fruit +
-        adventure * SCORE_WEIGHTS.adventure +
-        classics * SCORE_WEIGHTS.classics
+        scores.interstellar * SCORE_WEIGHTS.interstellar +
+        scores.fruit * SCORE_WEIGHTS.fruit +
+        scores.adventure * SCORE_WEIGHTS.adventure +
+        scores.classics * SCORE_WEIGHTS.classics +
+        scores.rhythm * SCORE_WEIGHTS.rhythm +
+        scores.racer * SCORE_WEIGHTS.racer
     );
 }
 
@@ -62,13 +66,21 @@ function updateStudentScoreRecord(studentId, callback) {
         classics: `SELECT 
             MAX(score) as best_speed, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
             COUNT(*) as play_count, SUM(duration) as total_time
-            FROM practice_records WHERE student_id = ? AND mode LIKE 'classics-%'`
+            FROM practice_records WHERE student_id = ? AND mode LIKE 'classics-%'`,
+        rhythm: `SELECT 
+            MAX(score) as best_score, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
+            MAX(max_combo) as best_combo, COUNT(*) as play_count, SUM(duration) as total_time
+            FROM practice_records WHERE student_id = ? AND mode = 'rhythm-typist'`,
+        racer: `SELECT 
+            MAX(score) as best_score, MAX(wpm) as best_wpm, MAX(accuracy) as best_accuracy,
+            MAX(max_combo) as best_combo, COUNT(*) as play_count, SUM(duration) as total_time
+            FROM practice_records WHERE student_id = ? AND mode = 'word-racer'`
     };
     
     const results = {};
     let completed = 0;
     
-    ['interstellar', 'fruit', 'adventure', 'classics'].forEach(mode => {
+    ['interstellar', 'fruit', 'adventure', 'classics', 'rhythm', 'racer'].forEach(mode => {
         db.get(queries[mode], [studentId], (err, row) => {
             if (err) { callback(err); return; }
             results[mode] = row || { best_score: 0, best_wpm: 0, best_accuracy: 0, play_count: 0 };
@@ -76,7 +88,7 @@ function updateStudentScoreRecord(studentId, callback) {
             results[mode].best_wpm = results[mode].best_wpm || 0;
             results[mode].best_accuracy = results[mode].best_accuracy || 0;
             completed++;
-            if (completed === 4) {
+            if (completed === 6) {
                 // 计算各项目积分 (根据各模式特点传入 mastery 目标)
                 const interstellarScore = calculateItemScore(
                     results.interstellar.best_wpm,
@@ -103,31 +115,70 @@ function updateStudentScoreRecord(studentId, callback) {
                     results.classics.best_wpm,
                     results.classics.best_accuracy,
                     results.classics.best_speed || results.classics.best_score,
-                    // 国学打字：关注打字速度 CPM (目标 120)
+                    // 国学打字：关注打字速度 CPM (假设目标 120 字/分)
                     results.classics.best_wpm, 120
                 );
-                const totalScore = calculateTotalScore(interstellarScore, fruitScore, adventureScore, classicsScore);
+                const rhythmScore = calculateItemScore(
+                    results.rhythm.best_wpm,
+                    results.rhythm.best_accuracy,
+                    results.rhythm.best_score,
+                    // 节奏打字：关注连击 (目标 80)
+                    results.rhythm.best_combo || 0, 80
+                );
+                const racerScore = calculateItemScore(
+                    results.racer.best_wpm,
+                    results.racer.best_accuracy,
+                    results.racer.best_score,
+                    // 单词飞车：关注连击 (目标 60)
+                    results.racer.best_combo || 0, 60
+                );
+                const totalScore = calculateTotalScore({
+                    interstellar: interstellarScore,
+                    fruit: fruitScore,
+                    adventure: adventureScore,
+                    classics: classicsScore,
+                    rhythm: rhythmScore,
+                    racer: racerScore
+                });
                 
                 db.get('SELECT * FROM practice_scores WHERE student_id = ?', [studentId], (err, existing) => {
                     if (err) { callback(err); return; }
                     
                     if (!existing) {
-                        db.run('INSERT INTO practice_scores (student_id, interstellar_score, fruit_score, adventure_score, classics_score, total_score, interstellar_best_score, interstellar_best_wpm, interstellar_best_accuracy, interstellar_play_count, interstellar_total_time, fruit_best_score, fruit_best_wpm, fruit_best_accuracy, fruit_best_combo, fruit_play_count, fruit_total_time, adventure_best_score, adventure_best_wpm, adventure_best_accuracy, adventure_levels_completed, adventure_play_count, classics_best_speed, classics_best_wpm, classics_best_accuracy, classics_play_count, classics_total_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                            [studentId, interstellarScore, fruitScore, adventureScore, classicsScore, totalScore, results.interstellar.best_score, results.interstellar.best_wpm, results.interstellar.best_accuracy, results.interstellar.play_count || 0, results.interstellar.total_time || 0, results.fruit.best_score, results.fruit.best_wpm, results.fruit.best_accuracy, results.fruit.best_combo || 0, results.fruit.play_count || 0, results.fruit.total_time || 0, results.adventure.best_score, results.adventure.best_wpm, results.adventure.best_accuracy, results.adventure.levels_completed || 0, results.adventure.play_count || 0, results.classics.best_speed || results.classics.best_wpm, results.classics.best_wpm, results.classics.best_accuracy, results.classics.play_count || 0, results.classics.total_time || 0],
-                            callback);
-                    } else {
-                        db.run(`UPDATE practice_scores SET
-                            interstellar_score = ?, fruit_score = ?, adventure_score = ?, classics_score = ?, total_score = ?,
-                            interstellar_best_score = ?, interstellar_best_wpm = ?, interstellar_best_accuracy = ?, interstellar_play_count = ?, interstellar_total_time = ?,
-                            fruit_best_score = ?, fruit_best_wpm = ?, fruit_best_accuracy = ?, fruit_best_combo = ?, fruit_play_count = ?, fruit_total_time = ?,
-                            adventure_best_score = ?, adventure_best_wpm = ?, adventure_best_accuracy = ?, adventure_levels_completed = ?, adventure_play_count = ?,
-                            classics_best_speed = ?, classics_best_wpm = ?, classics_best_accuracy = ?, classics_play_count = ?, classics_total_time = ?,
-                            updated_at = CURRENT_TIMESTAMP WHERE student_id = ?`,
-                            [interstellarScore, fruitScore, adventureScore, classicsScore, totalScore,
+                        db.run(`INSERT INTO practice_scores (
+                            student_id, interstellar_score, fruit_score, adventure_score, classics_score, rhythm_score, racer_score, total_score,
+                            interstellar_best_score, interstellar_best_wpm, interstellar_best_accuracy, interstellar_play_count, interstellar_total_time,
+                            fruit_best_score, fruit_best_wpm, fruit_best_accuracy, fruit_best_combo, fruit_play_count, fruit_total_time,
+                            adventure_best_score, adventure_best_wpm, adventure_best_accuracy, adventure_levels_completed, adventure_play_count,
+                            classics_best_speed, classics_best_wpm, classics_best_accuracy, classics_play_count, classics_total_time,
+                            rhythm_best_score, rhythm_best_wpm, rhythm_best_accuracy, rhythm_best_combo, rhythm_play_count, rhythm_total_time,
+                            racer_best_score, racer_best_wpm, racer_best_accuracy, racer_best_combo, racer_play_count, racer_total_time
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [studentId, interstellarScore, fruitScore, adventureScore, classicsScore, rhythmScore, racerScore, totalScore,
                             results.interstellar.best_score, results.interstellar.best_wpm, results.interstellar.best_accuracy, results.interstellar.play_count || 0, results.interstellar.total_time || 0,
                             results.fruit.best_score, results.fruit.best_wpm, results.fruit.best_accuracy, results.fruit.best_combo || 0, results.fruit.play_count || 0, results.fruit.total_time || 0,
                             results.adventure.best_score, results.adventure.best_wpm, results.adventure.best_accuracy, results.adventure.levels_completed || 0, results.adventure.play_count || 0,
                             results.classics.best_speed || results.classics.best_wpm, results.classics.best_wpm, results.classics.best_accuracy, results.classics.play_count || 0, results.classics.total_time || 0,
+                            results.rhythm.best_score, results.rhythm.best_wpm, results.rhythm.best_accuracy, results.rhythm.best_combo || 0, results.rhythm.play_count || 0, results.rhythm.total_time || 0,
+                            results.racer.best_score, results.racer.best_wpm, results.racer.best_accuracy, results.racer.best_combo || 0, results.racer.play_count || 0, results.racer.total_time || 0],
+                            callback);
+                    } else {
+                        db.run(`UPDATE practice_scores SET
+                            interstellar_score = ?, fruit_score = ?, adventure_score = ?, classics_score = ?, rhythm_score = ?, racer_score = ?, total_score = ?,
+                            interstellar_best_score = ?, interstellar_best_wpm = ?, interstellar_best_accuracy = ?, interstellar_play_count = ?, interstellar_total_time = ?,
+                            fruit_best_score = ?, fruit_best_wpm = ?, fruit_best_accuracy = ?, fruit_best_combo = ?, fruit_play_count = ?, fruit_total_time = ?,
+                            adventure_best_score = ?, adventure_best_wpm = ?, adventure_best_accuracy = ?, adventure_levels_completed = ?, adventure_play_count = ?,
+                            classics_best_speed = ?, classics_best_wpm = ?, classics_best_accuracy = ?, classics_play_count = ?, classics_total_time = ?,
+                            rhythm_best_score = ?, rhythm_best_wpm = ?, rhythm_best_accuracy = ?, rhythm_best_combo = ?, rhythm_play_count = ?, rhythm_total_time = ?,
+                            racer_best_score = ?, racer_best_wpm = ?, racer_best_accuracy = ?, racer_best_combo = ?, racer_play_count = ?, racer_total_time = ?,
+                            updated_at = CURRENT_TIMESTAMP WHERE student_id = ?`,
+                            [interstellarScore, fruitScore, adventureScore, classicsScore, rhythmScore, racerScore, totalScore,
+                            results.interstellar.best_score, results.interstellar.best_wpm, results.interstellar.best_accuracy, results.interstellar.play_count || 0, results.interstellar.total_time || 0,
+                            results.fruit.best_score, results.fruit.best_wpm, results.fruit.best_accuracy, results.fruit.best_combo || 0, results.fruit.play_count || 0, results.fruit.total_time || 0,
+                            results.adventure.best_score, results.adventure.best_wpm, results.adventure.best_accuracy, results.adventure.levels_completed || 0, results.adventure.play_count || 0,
+                            results.classics.best_speed || results.classics.best_wpm, results.classics.best_wpm, results.classics.best_accuracy, results.classics.play_count || 0, results.classics.total_time || 0,
+                            results.rhythm.best_score, results.rhythm.best_wpm, results.rhythm.best_accuracy, results.rhythm.best_combo || 0, results.rhythm.play_count || 0, results.rhythm.total_time || 0,
+                            results.racer.best_score, results.racer.best_wpm, results.racer.best_accuracy, results.racer.best_combo || 0, results.racer.play_count || 0, results.racer.total_time || 0,
                             studentId], callback);
                     }
                 });

@@ -4,10 +4,12 @@ const { db } = require('../database');
 
 // 积分权重配置
 const SCORE_WEIGHTS = {
-    interstellar: 0.30,  // 星际打字权重 30%
-    fruit: 0.25,         // 拼音入门权重 25%
-    adventure: 0.25,      // 英语闯关权重 25%
-    classics: 0.20         // 国学打字权重 20%
+    interstellar: 0.25,  // 星际打字权重 25%
+    fruit: 0.20,         // 拼音入门权重 20%
+    adventure: 0.20,     // 英语闯关权重 20%
+    classics: 0.15,      // 国学打字权重 15%
+    rhythm: 0.10,        // 节奏打字权重 10%
+    racer: 0.10          // 单词飞车权重 10%
 };
 
 // 计算单个项目的综合能力分 (Composite Proficiency Index)
@@ -38,12 +40,14 @@ function calculateItemScore(wpm, accuracy, score, masteryValue, masteryTarget) {
 }
 
 // 计算综合积分
-function calculateTotalScore(interstellar, fruit, adventure, classics) {
+function calculateTotalScore(scores) {
     return Math.round(
-        interstellar * SCORE_WEIGHTS.interstellar +
-        fruit * SCORE_WEIGHTS.fruit +
-        adventure * SCORE_WEIGHTS.adventure +
-        classics * SCORE_WEIGHTS.classics
+        scores.interstellar * SCORE_WEIGHTS.interstellar +
+        scores.fruit * SCORE_WEIGHTS.fruit +
+        scores.adventure * SCORE_WEIGHTS.adventure +
+        scores.classics * SCORE_WEIGHTS.classics +
+        scores.rhythm * SCORE_WEIGHTS.rhythm +
+        scores.racer * SCORE_WEIGHTS.racer
     );
 }
 
@@ -106,13 +110,31 @@ router.post('/update/:student_id', (req, res) => {
             MAX(accuracy) as best_accuracy,
             COUNT(*) as play_count,
             SUM(duration) as total_time
-            FROM practice_records WHERE student_id = ? AND mode LIKE 'classics-%'`
+            FROM practice_records WHERE student_id = ? AND mode LIKE 'classics-%'`,
+        
+        rhythm: `SELECT 
+            MAX(score) as best_score,
+            MAX(wpm) as best_wpm,
+            MAX(accuracy) as best_accuracy,
+            MAX(max_combo) as best_combo,
+            COUNT(*) as play_count,
+            SUM(duration) as total_time
+            FROM practice_records WHERE student_id = ? AND mode = 'rhythm-typist'`,
+        
+        racer: `SELECT 
+            MAX(score) as best_score,
+            MAX(wpm) as best_wpm,
+            MAX(accuracy) as best_accuracy,
+            MAX(max_combo) as best_combo,
+            COUNT(*) as play_count,
+            SUM(duration) as total_time
+            FROM practice_records WHERE student_id = ? AND mode = 'word-racer'`
     };
     
     const results = {};
     let completed = 0;
     
-    ['interstellar', 'fruit', 'adventure', 'classics'].forEach(mode => {
+    ['interstellar', 'fruit', 'adventure', 'classics', 'rhythm', 'racer'].forEach(mode => {
         db.get(queries[mode], [studentId], (err, row) => {
             if (err) {
                 res.status(500).json({ error: '查询失败' });
@@ -124,7 +146,7 @@ router.post('/update/:student_id', (req, res) => {
             results[mode].best_accuracy = results[mode].best_accuracy || 0;
             
             completed++;
-            if (completed === 4) {
+            if (completed === 6) {
                 // 计算各项目积分 (根据各模式特点传入 mastery 目标)
                 const interstellarScore = calculateItemScore(
                     results.interstellar.best_wpm,
@@ -154,7 +176,28 @@ router.post('/update/:student_id', (req, res) => {
                     // 国学打字：关注打字速度 CPM (假设目标 120 字/分)
                     results.classics.best_wpm, 120
                 );
-                const totalScore = calculateTotalScore(interstellarScore, fruitScore, adventureScore, classicsScore);
+                const rhythmScore = calculateItemScore(
+                    results.rhythm.best_wpm,
+                    results.rhythm.best_accuracy,
+                    results.rhythm.best_score,
+                    // 节奏打字：关注连击 (假设目标 80 连击)
+                    results.rhythm.best_combo || 0, 80
+                );
+                const racerScore = calculateItemScore(
+                    results.racer.best_wpm,
+                    results.racer.best_accuracy,
+                    results.racer.best_score,
+                    // 单词飞车：关注连击 (假设目标 60 连击)
+                    results.racer.best_combo || 0, 60
+                );
+                const totalScore = calculateTotalScore({
+                    interstellar: interstellarScore,
+                    fruit: fruitScore,
+                    adventure: adventureScore,
+                    classics: classicsScore,
+                    rhythm: rhythmScore,
+                    racer: racerScore
+                });
                 
                 // 更新数据库
                 const updateSql = `UPDATE practice_scores SET
@@ -162,6 +205,8 @@ router.post('/update/:student_id', (req, res) => {
                     fruit_score = ?,
                     adventure_score = ?,
                     classics_score = ?,
+                    rhythm_score = ?,
+                    racer_score = ?,
                     total_score = ?,
                     interstellar_best_score = ?,
                     interstellar_best_wpm = ?,
@@ -184,11 +229,23 @@ router.post('/update/:student_id', (req, res) => {
                     classics_best_accuracy = ?,
                     classics_play_count = ?,
                     classics_total_time = ?,
+                    rhythm_best_score = ?,
+                    rhythm_best_wpm = ?,
+                    rhythm_best_accuracy = ?,
+                    rhythm_best_combo = ?,
+                    rhythm_play_count = ?,
+                    rhythm_total_time = ?,
+                    racer_best_score = ?,
+                    racer_best_wpm = ?,
+                    racer_best_accuracy = ?,
+                    racer_best_combo = ?,
+                    racer_play_count = ?,
+                    racer_total_time = ?,
                     updated_at = CURRENT_TIMESTAMP
                     WHERE student_id = ?`;
                 
                 db.run(updateSql, [
-                    interstellarScore, fruitScore, adventureScore, classicsScore, totalScore,
+                    interstellarScore, fruitScore, adventureScore, classicsScore, rhythmScore, racerScore, totalScore,
                     results.interstellar.best_score,
                     results.interstellar.best_wpm,
                     results.interstellar.best_accuracy,
@@ -210,6 +267,18 @@ router.post('/update/:student_id', (req, res) => {
                     results.classics.best_accuracy,
                     results.classics.play_count || 0,
                     results.classics.total_time || 0,
+                    results.rhythm.best_score,
+                    results.rhythm.best_wpm,
+                    results.rhythm.best_accuracy,
+                    results.rhythm.best_combo || 0,
+                    results.rhythm.play_count || 0,
+                    results.rhythm.total_time || 0,
+                    results.racer.best_score,
+                    results.racer.best_wpm,
+                    results.racer.best_accuracy,
+                    results.racer.best_combo || 0,
+                    results.racer.play_count || 0,
+                    results.racer.total_time || 0,
                     studentId
                 ], function(err) {
                     if (err) {
@@ -223,6 +292,8 @@ router.post('/update/:student_id', (req, res) => {
                             fruit: fruitScore,
                             adventure: adventureScore,
                             classics: classicsScore,
+                            rhythm: rhythmScore,
+                            racer: racerScore,
                             total: totalScore
                         },
                         details: results
@@ -266,7 +337,7 @@ router.get('/ranking/:field', (req, res) => {
     const { limit = 50, school, grade, class_number } = req.query;
     
     // 允许排序的字段
-    const allowedFields = ['total_score', 'interstellar_score', 'fruit_score', 'adventure_score', 'classics_score'];
+    const allowedFields = ['total_score', 'interstellar_score', 'fruit_score', 'adventure_score', 'classics_score', 'rhythm_score', 'racer_score'];
     const orderField = allowedFields.includes(field) ? field : 'total_score';
     
     let whereClause = 's.exclude_ranking = 0';

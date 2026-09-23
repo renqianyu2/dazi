@@ -696,6 +696,9 @@
             socket: null,
             myId: null,
             myName: '访客',
+            _socketInited: false,
+            lastLeaderboard: null,
+            sidebarVisible: false,
             init(inGame = false) {
                 try {
                     const studentInfo = JSON.parse(localStorage.getItem('studentInfo') || '{}');
@@ -706,24 +709,31 @@
                         this.myId = 'guest_' + Math.floor(Math.random()*10000);
                     }
                     
+                    this.sidebarVisible = inGame;
                     document.getElementById('uiPlayerName').innerText = this.myName;
                     document.getElementById('playerInfoUI').style.display = inGame ? 'block' : 'none';
                     document.getElementById('leaderboardSidebar').style.display = inGame ? 'flex' : 'none';
 
-                    if (inGame) {
-                        this.renderLeaderboard([{ username: this.myName, score: 0 }]);
+                    if (!this._socketInited && typeof io !== 'undefined') {
+                        this._socketInited = true;
+                        this.socket = io();
+                        this.socket.on('connect', () => {
+                            this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
+                        });
+                        this.socket.on('leaderboard_update', (list) => {
+                            if (list && list.length > 0) {
+                                this.lastLeaderboard = list;
+                                if (this.sidebarVisible) this.renderLeaderboard(list);
+                            }
+                        });
                     }
 
-                    if (typeof io !== 'undefined') {
-                        this.socket = io();
-                        this.socket.emit('join_typist', { user_id: this.myId, username: this.myName });
-
-                        this.socket.on('leaderboard_update', (list) => {
-                            if (list && list.length > 0) this.renderLeaderboard(list);
-                        });
+                    if (inGame) {
+                        this.renderLeaderboard(this.lastLeaderboard || [{ username: this.myName, score: 0 }]);
                     }
                 } catch(e) {
                     console.warn("Socket.io initialization skipped or failed", e);
+                    this._socketInited = false;
                 }
             },
             updateScore(score) {
@@ -777,6 +787,7 @@
                     if (currentRank === 3) li.classList.add('rank-3');
                     if (isMe) li.classList.add('is-me');
                 });
+
 
                 existingItems.forEach(li => li.remove());
             }

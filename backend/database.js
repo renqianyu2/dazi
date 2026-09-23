@@ -245,6 +245,22 @@ function initDatabase() {
     db.run(`ALTER TABLE practice_scores ADD COLUMN classics_best_wpm INTEGER DEFAULT 0`, () => {});
     db.run(`ALTER TABLE practice_scores ADD COLUMN classics_play_count INTEGER DEFAULT 0`, () => {});
     db.run(`ALTER TABLE practice_scores ADD COLUMN classics_total_time INTEGER DEFAULT 0`, () => {});
+    // 节奏打字 / 单词飞车 积分字段
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_best_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_best_wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_best_accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_best_combo INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_play_count INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN rhythm_total_time INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_best_score INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_best_wpm INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_best_accuracy INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_best_combo INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_best_position INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_play_count INTEGER DEFAULT 0`, () => {});
+    db.run(`ALTER TABLE practice_scores ADD COLUMN racer_total_time INTEGER DEFAULT 0`, () => {});
 
     // 测试验证码表
     db.run(`CREATE TABLE IF NOT EXISTS test_codes (

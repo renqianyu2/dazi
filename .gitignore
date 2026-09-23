@@ -5,6 +5,13 @@ node_modules/
 *.db
 *.db-shm
 *.db-wal
+*.db.bak
+*.db.bak-*
+database.db.bak-*
+
+# 运行时文件
+server.pid
+server.log
 
 # 日志文件
 *.log
