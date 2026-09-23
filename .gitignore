@@ -2,7 +2,6 @@
 node_modules/
 
 # 数据库文件
-*.db
 *.db-shm
 *.db-wal
 *.db.bak
@@ -37,6 +36,3 @@ build/
 # 临时文件
 tmp/
 temp/
-database.db-wal
-database.db-shm
-database.db.bak
